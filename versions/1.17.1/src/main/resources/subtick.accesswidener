@@ -1,0 +1,13 @@
+accessWidener v1 named
+
+accessible field net/minecraft/server/world/ServerWorld syncedBlockEventQueue Lit/unimi/dsi/fastutil/objects/ObjectLinkedOpenHashSet;
+accessible field net/minecraft/server/world/ServerWorld server Lnet/minecraft/server/MinecraftServer;
+accessible method net/minecraft/server/world/ServerWorld processBlockEvent (Lnet/minecraft/server/world/BlockEvent;)Z
+
+accessible field net/minecraft/server/world/ServerWorld entityList Lnet/minecraft/world/EntityList;
+accessible field net/minecraft/world/EntityList entities Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
+accessible method net/minecraft/server/world/ServerWorld shouldCancelSpawn (Lnet/minecraft/entity/Entity;)Z
+
+accessible field net/minecraft/world/World iteratingTickingBlockEntities Z
+accessible field net/minecraft/world/World pendingBlockEntityTickers Ljava/util/List;
+accessible field net/minecraft/world/World blockEntityTickers Ljava/util/List;

@@ -1,32 +1,38 @@
 {
   "schemaVersion": 1,
-  "id": "${id}",
+  "id": "subtick",
   "version": "${version}",
 
-  "name": "${name}",
+  "name": "SubTick",
   "description": "",
   "authors": [
-    "Fallen_Breath"
+    "lntricate"
   ],
   "contact": {
     "homepage": "https://www.curseforge.com/",
-    "sources": "https://github.com/"
+    "sources": "https://github.com/lntricate1/SubTick"
   },
 
-  "icon": "assets/template_mod/icon.png",
+  "icon": "assets/subtick/icon.png",
 
   "environment": "*",
+  "accessWidener": "subtick.accesswidener",
+
   "entrypoints": {
     "main": [
-      "me.fallenbreath.template_mod.TemplateMod"
+      "subtick.SubTick"
+    ],
+    "preLaunch": [
+      "subtick.PreLaunch"
     ]
   },
   "mixins": [
-    "template_mod.mixins.json"
+    "subtick.mixins.json"
   ],
 
   "depends": {
     "fabricloader": ">=0.11.4",
-    "minecraft": "${minecraft_dependency}"
+    "minecraft": "${minecraft_dependency}",
+    "carpet": "${carpet_dependency}"
   }
 }
