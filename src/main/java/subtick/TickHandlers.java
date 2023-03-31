@@ -39,6 +39,54 @@ public class TickHandlers
     "Entity Management"
   };
 
+  public static final String[] tickPhaseNamesPlural = new String[]
+  {
+    "",
+    "",
+    "",
+    "Tile Ticks",
+    "Fluid Ticks",
+    "",
+    "",
+    "Block Events",
+    "Entities",
+    "Block Entities",
+    ""
+  };
+
+  public static final String[] tickPhaseArgumentNames = new String[]
+  {
+    "worldBorder",
+    "weather",
+    "time",
+    "tileTick",
+    "fluidTick",
+    "raid",
+    "chunk",
+    "blockEvent",
+    "entity",
+    "blockEntity",
+    "entityManagement"
+  };
+
+  public static int getPhase(String str)
+  {
+    for(int i = 0; i < tickPhaseArgumentNames.length; i++)
+      if(str.equals(tickPhaseArgumentNames[i])) return i;
+
+    return -1;
+  }
+
+  public static String getPhase(int phase)
+  {
+    return Settings.subtickPhaseFormat + " " + tickPhaseNames[phase];
+  }
+
+  public static String getPhase(int phase, int count)
+  {
+    return Settings.subtickPhaseFormat + " " + (count == 1 ? tickPhaseNames : tickPhaseNamesPlural)[phase];
+  }
+
   public static void addWorld(RegistryKey<World> key, ServerWorld world)
   {
     tickHandlers.put(key, new TickHandler(key.getValue().getPath(), world));

@@ -4,10 +4,14 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.ServerCommandSource;
 
-import static com.mojang.brigadier.arguments.IntegerArgumentType.getInteger;
-import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.command.CommandSource.suggestMatching;
+
+import static com.mojang.brigadier.arguments.IntegerArgumentType.getInteger;
+import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
+import static com.mojang.brigadier.arguments.StringArgumentType.getString;
+import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import net.minecraft.server.world.ServerWorld;
 
@@ -15,6 +19,7 @@ import carpet.utils.Messenger;
 
 import subtick.TickHandlers;
 import subtick.TickHandler;
+import subtick.Settings;
 
 public class QueueCommand
 {
@@ -22,130 +27,33 @@ public class QueueCommand
   {
     dispatcher.register(
       literal("queueStep")
-      .then(literal("blockEvent")
+      .then(argument("phase", word())
+        .suggests((c, b) -> suggestMatching(new String[]{"blockEvent", "entity", "blockEntity"}, b))
         .then(argument("count", integer(1))
-          .executes((c) -> blockEventStep(c, getInteger(c, "count")))
+          .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), getInteger(c, "count")))
         )
-        .executes((c) -> blockEventStep(c, 1))
-      )
-      .then(literal("entity")
-        .then(argument("count", integer(1))
-          .executes((c) -> entityStep(c, getInteger(c, "count")))
-        )
-        .executes((c) -> entityStep(c, 1))
-      )
-      .then(literal("blockEntity")
-        .then(argument("count", integer(1))
-          .executes((c) -> blockEntityStep(c, getInteger(c, "count")))
-        )
-        .executes((c) -> blockEntityStep(c, 1))
+        .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), 1))
       )
     );
   }
 
-  private static int blockEventStep(CommandContext<ServerCommandSource> c, int count)
+  private static String t(String str)
   {
-    ServerWorld world = c.getSource().getWorld();
-    TickHandler handler = TickHandlers.getHandler(world.getRegistryKey());
-    if(handler.stepping)
-    {
-      Messenger.m(c.getSource(), "ig Dimension " + handler.dimensionName + " is already tick stepping. Try again later.");
-      return 1;
-    }
-
-    if(handler.scheduled_block_event_step)
-    {
-      Messenger.m(c.getSource(), "ig Dimension " + handler.dimensionName + " is already scheduled for Block Event stepping. Try again later.");
-      return 1;
-    }
-
-    if(handler.current_phase > TickHandlers.BLOCK_EVENT || world.syncedBlockEventQueue.isEmpty())
-    {
-      Messenger.m(c.getSource(), "ig No more Block Events for this tick in dimension " + handler.dimensionName);
-      return 1;
-    }
-
-    if(count == 1)
-      Messenger.m(c.getSource(), "ig Stepping 1 Block Event in dimension " + handler.dimensionName);
-    else
-      Messenger.m(c.getSource(), "ig Stepping " + count + " Block Events in dimension " + handler.dimensionName);
-    if(handler.current_phase < TickHandlers.BLOCK_EVENT)
-    {
-      handler.step(0, TickHandlers.BLOCK_EVENT);
-      handler.scheduleBlockEventStep(count);
-      return 0;
-    }
-    handler.stepBlockEvents(count);
-    return 0;
+    return Settings.subtickTextFormat + " " + str;
   }
 
-  private static int entityStep(CommandContext<ServerCommandSource> c, int count)
+  private static String n(String str)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
-    if(handler.stepping)
-    {
-      Messenger.m(c.getSource(), "ig Dimension " + handler.dimensionName + " is already tick stepping. Try again later.");
-      return 1;
-    }
-
-    if(handler.scheduled_entity_step)
-    {
-      Messenger.m(c.getSource(), "ig Dimension " + handler.dimensionName + " is already scheduled for Entity stepping. Try again later.");
-      return 1;
-    }
-
-    if(handler.current_phase > TickHandlers.ENTITY || (handler.entity_iterator != null && !handler.entity_iterator.hasNext()))
-    {
-      Messenger.m(c.getSource(), "ig No more Entities for this tick in dimension " + handler.dimensionName);
-      return 1;
-    }
-
-    if(count == 1)
-      Messenger.m(c.getSource(), "ig Stepping 1 Entity in dimension " + handler.dimensionName);
-    else
-      Messenger.m(c.getSource(), "ig Stepping " + count + " Entities in dimension " + handler.dimensionName);
-    if(handler.current_phase < TickHandlers.ENTITY)
-    {
-      handler.step(0, TickHandlers.ENTITY);
-      handler.scheduleEntityStep(count);
-      return 0;
-    }
-    handler.stepEntities(count);
-    return 0;
+    return Settings.subtickNumberFormat + " " + str;
   }
 
-  private static int blockEntityStep(CommandContext<ServerCommandSource> c, int count)
+  private static int step(CommandContext<ServerCommandSource> c, int phase, int count)
   {
     TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
-    if(handler.stepping)
-    {
-      Messenger.m(c.getSource(), "ig Dimension " + handler.dimensionName + " is already tick stepping. Try again later.");
-      return 1;
-    }
+    if(!handler.canStep(c) || !handler.canQueueStep(c, phase)) return 1;
 
-    if(handler.scheduled_block_entity_step)
-    {
-      Messenger.m(c.getSource(), "ig Dimension " + handler.dimensionName + " is already scheduled for Block Entity stepping. Try again later.");
-      return 1;
-    }
-
-    if(handler.current_phase > TickHandlers.BLOCK_ENTITY || (handler.world.blockEntityTickers.isEmpty() && handler.world.pendingBlockEntityTickers.isEmpty()) || (handler.block_entity_iterator != null && !handler.block_entity_iterator.hasNext()))
-    {
-      Messenger.m(c.getSource(), "ig No more Block Entities for this tick in dimension " + handler.dimensionName);
-      return 1;
-    }
-
-    if(count == 1)
-      Messenger.m(c.getSource(), "ig Stepping 1 Block Entity in dimension " + handler.dimensionName);
-    else
-      Messenger.m(c.getSource(), "ig Stepping " + count + " Block Entities in dimension " + handler.dimensionName);
-    if(handler.current_phase < TickHandlers.BLOCK_ENTITY)
-    {
-      handler.step(0, TickHandlers.BLOCK_ENTITY);
-      handler.scheduleBlockEntityStep(count);
-      return 0;
-    }
-    handler.stepBlockEntities(count);
+    Messenger.m(c.getSource(), t("Stepping dimension "), handler.getDimension(), n(" " + count + " "), TickHandlers.getPhase(phase, count));
+    handler.scheduleQueueStep(phase, count);
     return 0;
   }
 }

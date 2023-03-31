@@ -4,7 +4,10 @@
   "package": "subtick.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "ServerWorld_tickMixin"
+    "ServerWorld_tickMixin",
+
+    "carpet.ServerNetworkHandlerAccessor",
+    "carpet.TickCommandMixin"
   ],
   "client": [
   ],

@@ -43,6 +43,10 @@ import net.minecraft.village.raid.RaidManager;
 // chunk
 import net.minecraft.server.world.ServerChunkManager;
 import java.util.function.BooleanSupplier;
+import com.google.common.collect.Lists;
+import java.util.Optional;
+import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.server.world.ChunkHolder;
 // entity
 import net.minecraft.world.EntityList;
 import java.util.function.Consumer;
@@ -140,7 +144,18 @@ public abstract class ServerWorld_tickMixin extends World
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerChunkManager;tick(Ljava/util/function/BooleanSupplier;)V"))
   private boolean chunk(ServerChunkManager self, BooleanSupplier bs)
   {
-    return TickHandlers.getHandler(getRegistryKey()).shouldTick(TickHandlers.CHUNK);
+    if(TickHandlers.getHandler(getRegistryKey()).shouldTick(TickHandlers.CHUNK))
+      return true;
+
+    // Send chunk updates and entity updates to clients
+    for(ChunkHolder holder : Lists.newArrayList(self.threadedAnvilChunkStorage.entryIterator()))
+    {
+      Optional<WorldChunk> optional = holder.getTickingFuture().getNow(ChunkHolder.UNLOADED_WORLD_CHUNK).left();
+      if(optional.isPresent())
+        holder.flushUpdates(optional.get());
+    }
+    self.threadedAnvilChunkStorage.tickEntityMovement();
+    return false;
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;processSyncedBlockEvents()V"))

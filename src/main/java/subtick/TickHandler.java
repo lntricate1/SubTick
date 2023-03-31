@@ -6,6 +6,20 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.BlockEventS2CPacket;
 
+import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.server.command.ServerCommandSource;
+import carpet.utils.Messenger;
+
+import carpet.network.ServerNetworkHandler;
+import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
+import carpet.CarpetSettings;
+import carpet.network.CarpetClient;
+import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.nbt.NbtCompound;
+import io.netty.buffer.Unpooled;
+import net.minecraft.network.PacketByteBuf;
+
 // entity step
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 // block entity step
@@ -15,27 +29,26 @@ import net.minecraft.world.chunk.BlockEntityTickInvoker;
 public class TickHandler
 {
   public final ServerWorld world;
-
   public final String dimensionName;
+
+  // Freeze
   public boolean frozen = false;
-  private boolean freezing = false;
+  public boolean freezing = false;
   private boolean unfreezing = false;
+  private int target_phase = 0;
+  // Step
   public boolean stepping = false;
   private boolean in_first_stepped_phase = false;
   private int remaining_ticks = 0;
   public int current_phase = 0;
-  private int target_phase = 7;
 
-  public boolean scheduled_block_event_step = false;
-  private int scheduled_block_event_step_count = 0;
-
+  // Queue stuff
+  public int queue_stepping = -1;
+  public int scheduled_queue_step = -1;
+  private int scheduled_queue_step_count = 0;
+  // Queues
   public ObjectIterator entity_iterator = null;
-  public boolean scheduled_entity_step = false;
-  private int scheduled_entity_step_count = 0;
-
   public Iterator block_entity_iterator = null;
-  public boolean scheduled_block_entity_step = false;
-  private int scheduled_block_entity_step_count = 0;
 
   public TickHandler(String dimensionName, ServerWorld world)
   {
@@ -51,6 +64,7 @@ public class TickHandler
       freezing = false;
       frozen = true;
       current_phase = phase;
+      updateFrozenStateToConnectedPlayers();
       return false;
     }
 
@@ -67,37 +81,45 @@ public class TickHandler
     {
       unfreezing = false;
       frozen = false;
+      updateFrozenStateToConnectedPlayers();
       return true;
     }
 
     // Return false if frozen and not stepping
     if(!stepping || phase != current_phase) return false;
+    // Continues only if stepping and in current_phase
 
     // Stepping
     if(phase == 0 && !in_first_stepped_phase) --remaining_ticks;
+    in_first_stepped_phase = false;
     if(remaining_ticks < 1 && phase == target_phase)
     {
       stepping = false;
-      if(scheduled_block_event_step)
+      if(scheduled_queue_step != -1)
       {
-        stepBlockEvents(scheduled_block_event_step_count);
-        scheduled_block_event_step = false;
-      }
-      if(scheduled_entity_step)
-      {
-        stepEntities(scheduled_entity_step_count);
-        scheduled_entity_step = false;
-      }
-      if(scheduled_block_entity_step)
-      {
-        stepBlockEntities(scheduled_block_entity_step_count);
-        scheduled_block_entity_step = false;
+        switch(scheduled_queue_step)
+        {
+          case TickHandlers.BLOCK_EVENT:
+            stepBlockEvents(scheduled_queue_step_count);
+            break;
+          case TickHandlers.ENTITY:
+            stepEntities(scheduled_queue_step_count);
+            break;
+          case TickHandlers.BLOCK_ENTITY:
+            stepBlockEntities(scheduled_queue_step_count);
+            break;
+        }
+        scheduled_queue_step = -1;
       }
       return false;
     }
-    in_first_stepped_phase = false;
-    current_phase = (current_phase + 1) % TickHandlers.TOTAL_PHASES;
+    advancePhase();
     return true;
+  }
+
+  private void advancePhase()
+  {
+    current_phase = (current_phase + 1) % TickHandlers.TOTAL_PHASES;
   }
 
   public void step(int ticks, int phase)
@@ -106,6 +128,12 @@ public class TickHandler
     in_first_stepped_phase = true;
     remaining_ticks = ticks;
     target_phase = phase;
+    if(ticks != 0 || phase != current_phase)
+      finishQueueStep();
+  }
+
+  public void finishQueueStep()
+  {
     finishStepEntities();
     finishStepBlockEntities();
   }
@@ -122,21 +150,16 @@ public class TickHandler
     else
     {
       unfreezing = true;
-      finishStepEntities();
-      finishStepBlockEntities();
+      stepping = false;
+      finishQueueStep();
     }
   }
 
-  public void scheduleBlockEventStep(int count)
+  public void scheduleQueueStep(int phase, int count)
   {
-    scheduled_block_event_step = true;
-    scheduled_block_event_step_count = count;
-  }
-
-  public void scheduleEntityStep(int count)
-  {
-    scheduled_entity_step = true;
-    scheduled_entity_step_count = count;
+    step(0, phase);
+    scheduled_queue_step = phase;
+    scheduled_queue_step_count = count;
   }
 
   public void stepBlockEvents(int count)
@@ -151,8 +174,12 @@ public class TickHandler
 
   public void stepEntities(int count)
   {
-    if(entity_iterator == null)
+    if(queue_stepping == -1)
+    {
+      world.entityList.iterating = world.entityList.entities;
       entity_iterator = world.entityList.entities.values().iterator();
+      queue_stepping = TickHandlers.ENTITY;
+    }
 
     for(int i = 0; i < count && entity_iterator.hasNext(); i++)
     {
@@ -178,24 +205,9 @@ public class TickHandler
     }
   }
 
-  public void finishStepEntities()
-  {
-    if(entity_iterator != null)
-    {
-      stepEntities(2147483647);
-      entity_iterator = null;
-      current_phase ++;
-    }
-  }
-
-  public void scheduleBlockEntityStep(int count)
-  {
-    scheduled_block_entity_step = true;
-    scheduled_block_entity_step_count = count;
-  }
-
   public void stepBlockEntities(int count)
   {
+    queue_stepping = TickHandlers.BLOCK_ENTITY;
     if(!world.iteratingTickingBlockEntities)
     {
       world.iteratingTickingBlockEntities = true;
@@ -220,14 +232,115 @@ public class TickHandler
     }
   }
 
-  public void finishStepBlockEntities()
+  private void finishStepEntities()
   {
-    if(block_entity_iterator != null)
+    if(queue_stepping == TickHandlers.ENTITY)
+    {
+      stepEntities(2147483647);
+      world.entityList.iterating = null;
+      queue_stepping = -1;
+      advancePhase();
+    }
+  }
+
+  private void finishStepBlockEntities()
+  {
+    if(queue_stepping == TickHandlers.BLOCK_ENTITY)
     {
       stepBlockEntities(2147483647);
       world.iteratingTickingBlockEntities = false;
-      block_entity_iterator = null;
-      current_phase ++;
+      queue_stepping = -1;
+      advancePhase();
     }
+  }
+
+  public boolean canStep(CommandContext<ServerCommandSource> c)
+  {
+    if(!frozen)
+    {
+      Messenger.m(c.getSource(), "ig Cannot step because dimension ", getDimension(), "ig  is not frozen.");
+      return false;
+    }
+
+    if(stepping)
+    {
+      Messenger.m(c.getSource(), "ig Cannot step because dimension ", getDimension(), "ig  is already tick stepping.");
+      return false;
+    }
+
+    if(scheduled_queue_step != -1)
+    {
+      Messenger.m(c.getSource(), "ig Cannot step because dimension ", getDimension(), "ig  is already scheduled to step through ", "it " + TickHandlers.tickPhaseNames[scheduled_queue_step], "ig  queue.");
+    }
+
+    return true;
+  }
+
+  public boolean canQueueStep(CommandContext<ServerCommandSource> c, int queue)
+  {
+    if(!canStep(c)) return false;
+
+    if(current_phase > queue)
+    {
+      Messenger.m(c.getSource(), "ig Cannot queueStep because ", TickHandlers.getPhase(queue), "ig  phase already happened for dimension ", getDimension());
+      return false;
+    }
+
+    if(queue_stepping != -1)
+    {
+      boolean noMore = false;
+      switch(queue_stepping)
+      {
+        case TickHandlers.BLOCK_EVENT:
+          noMore = world.syncedBlockEventQueue.isEmpty();
+          break;
+        case TickHandlers.ENTITY:
+          noMore = !entity_iterator.hasNext();
+          break;
+        case TickHandlers.BLOCK_ENTITY:
+          noMore = !block_entity_iterator.hasNext();
+          break;
+      }
+
+      if(noMore)
+      {
+        Messenger.m(c.getSource(), "ig No more elements in queue ", TickHandlers.getPhase(queue), "ig  for dimension ", getDimension());
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private void updateFrozenStateToConnectedPlayers()
+  {
+    if(CarpetSettings.superSecretSetting) return;
+
+    for(ServerPlayerEntity player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
+    {
+      if(player.world != world) continue;
+
+      NbtCompound tag = new NbtCompound();
+      NbtCompound tickingState = new NbtCompound();
+      tickingState.putBoolean("is_paused", frozen);
+      tickingState.putBoolean("deepFreeze", frozen);
+      tag.put("TickingState", tickingState);
+
+      PacketByteBuf packetBuf = new PacketByteBuf(Unpooled.buffer());
+      packetBuf.writeVarInt(CarpetClient.DATA);
+      packetBuf.writeNbt(tag);
+
+      player.networkHandler.sendPacket(new CustomPayloadS2CPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+    }
+  }
+
+  public String getPhase()
+  {
+    return Settings.subtickPhaseFormat + " " + TickHandlers.tickPhaseNames[current_phase];
+  }
+
+  public String getDimension()
+  {
+    return Settings.subtickDimensionFormat + " " + dimensionName;
   }
 }

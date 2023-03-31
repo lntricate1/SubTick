@@ -3,7 +3,6 @@ package subtick;
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.api.ModInitializer;
 
 import subtick.commands.SubTickCommand;
 import subtick.commands.QueueCommand;
@@ -16,6 +15,12 @@ public class SubTick implements CarpetExtension, ModInitializer
   public void onInitialize()
   {
     CarpetServer.manageExtension(new SubTick());
+  }
+
+  @Override
+  public void onGameStarted()
+  {
+    CarpetServer.settingsManager.parseSettingsClass(Settings.class);
   }
 
   @Override
