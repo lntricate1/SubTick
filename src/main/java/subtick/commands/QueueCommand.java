@@ -20,6 +20,8 @@ import carpet.utils.Messenger;
 import subtick.TickHandlers;
 import subtick.TickHandler;
 import subtick.Settings;
+import static subtick.TickHandlers.t;
+import static subtick.TickHandlers.n;
 
 public class QueueCommand
 {
@@ -35,16 +37,6 @@ public class QueueCommand
         .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), 1))
       )
     );
-  }
-
-  private static String t(String str)
-  {
-    return Settings.subtickTextFormat + " " + str;
-  }
-
-  private static String n(String str)
-  {
-    return Settings.subtickNumberFormat + " " + str;
   }
 
   private static int step(CommandContext<ServerCommandSource> c, int phase, int count)

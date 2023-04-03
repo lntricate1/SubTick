@@ -36,8 +36,6 @@ import net.minecraft.server.PlayerManager;
 import net.minecraft.network.Packet;
 // tile tick
 import net.minecraft.server.world.ServerTickScheduler;
-import net.minecraft.block.Block;
-import net.minecraft.fluid.Fluid;
 // raid
 import net.minecraft.village.raid.RaidManager;
 // chunk
@@ -54,9 +52,9 @@ import java.util.function.Consumer;
 import net.minecraft.server.world.ServerEntityManager;
 
 @Mixin(ServerWorld.class)
-public abstract class ServerWorld_tickMixin extends World
+public abstract class ServerWorldMixin extends World
 {
-  public ServerWorld_tickMixin(MutableWorldProperties properties, RegistryKey<World> registryRef, final DimensionType dimensionType, Supplier<Profiler> profiler, boolean isClient, boolean debugWorld, long seed)
+  public ServerWorldMixin(MutableWorldProperties properties, RegistryKey<World> registryRef, final DimensionType dimensionType, Supplier<Profiler> profiler, boolean isClient, boolean debugWorld, long seed)
   {
     super(properties, registryRef, dimensionType, profiler, isClient, debugWorld, seed);
   }

@@ -87,6 +87,16 @@ public class TickHandlers
     return Settings.subtickPhaseFormat + " " + (count == 1 ? tickPhaseNames : tickPhaseNamesPlural)[phase];
   }
 
+  public static String t(String str)
+  {
+    return Settings.subtickTextFormat + " " + str;
+  }
+
+  public static String n(String str)
+  {
+    return Settings.subtickNumberFormat + " " + str;
+  }
+
   public static void addWorld(RegistryKey<World> key, ServerWorld world)
   {
     tickHandlers.put(key, new TickHandler(key.getValue().getPath(), world));

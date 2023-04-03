@@ -18,6 +18,8 @@ import carpet.utils.Messenger;
 import subtick.TickHandlers;
 import subtick.TickHandler;
 import subtick.Settings;
+import static subtick.TickHandlers.t;
+import static subtick.TickHandlers.n;
 
 public class SubTickCommand
 {
@@ -32,6 +34,22 @@ public class SubTickCommand
         .then(argument("phase", word())
           .suggests((c, b) -> suggestMatching(TickHandlers.tickPhaseArgumentNames, b))
           .executes((c) -> toggleFreeze(c, TickHandlers.getPhase(getString(c, "phase"))))
+        )
+        .then(literal("on")
+          .then(argument("phase", word())
+            .suggests((c, b) -> suggestMatching(TickHandlers.tickPhaseArgumentNames, b))
+            .executes((c) -> freeze(c, TickHandlers.getPhase(getString(c, "phase"))))
+          )
+          .executes((c) -> freeze(c, TickHandlers.getPhase(Settings.subtickDefaultPhase)))
+        )
+        .then(literal("off")
+          .executes((c) -> unFreeze(c))
+        )
+        .then(literal("status")
+          .executes((c) -> status(c))
+        )
+        .then(literal("deep")
+          .executes((c) -> {Messenger.m(c.getSource(), t("This feature doesn't do anything because SubTick is installed.")); return 1;})
         )
         .executes((c) -> toggleFreeze(c, TickHandlers.getPhase(Settings.subtickDefaultPhase)))
       )
@@ -48,20 +66,43 @@ public class SubTickCommand
     );
   }
 
-  private static String t(String str)
-  {
-    return Settings.subtickTextFormat + " " + str;
-  }
-
-  private static String n(String str)
-  {
-    return Settings.subtickNumberFormat + " " + str;
-  }
-
   private static int when(CommandContext<ServerCommandSource> c)
   {
     TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
     Messenger.m(c.getSource(), t("Dimension "), handler.getDimension(), t(" is in "), handler.getPhase(), t(" phase"));
+    return 0;
+  }
+
+  private static int status(CommandContext<ServerCommandSource> c)
+  {
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    Messenger.m(c.getSource(), t("Dimension "), handler.getDimension(), t(" is " + (handler.frozen ? "frozen" : "unfrozen") + " in "), handler.getPhase(), t(" phase"));
+    return 0;
+  }
+
+  private static int freeze(CommandContext<ServerCommandSource> c, int phase)
+  {
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    if(handler.frozen || handler.freezing)
+    {
+      Messenger.m(c.getSource(), t("Dimension "), handler.getDimension(), t(" is already frozen"));
+      return 0;
+    }
+    Messenger.m(c.getSource(), t("Freezing dimension "), handler.getDimension(), t(" in "), TickHandlers.getPhase(phase), t(" phase"));
+    handler.freeze(phase);
+    return 0;
+  }
+
+  private static int unFreeze(CommandContext<ServerCommandSource> c)
+  {
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    if(!(handler.frozen || handler.freezing))
+    {
+      Messenger.m(c.getSource(), t("Dimension "), handler.getDimension(), t(" is already unfrozen"));
+      return 0;
+    }
+    Messenger.m(c.getSource(), t("Unfreezing dimension "), handler.getDimension());
+    handler.unfreeze();
     return 0;
   }
 
@@ -70,13 +111,11 @@ public class SubTickCommand
     TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
     if(handler.frozen || handler.freezing)
     {
-      Messenger.m(c.getSource(), t("Unfreezing dimension "), handler.getDimension());
-      handler.unfreeze();
+      unFreeze(c);
     }
     else
     {
-      Messenger.m(c.getSource(), t("Freezing dimension "), handler.getDimension(), t(" in "), TickHandlers.getPhase(phase), t(" phase"));
-      handler.freeze(phase);
+      freeze(c, phase);
     }
     return 0;
   }

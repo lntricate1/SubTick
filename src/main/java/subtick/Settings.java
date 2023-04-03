@@ -35,4 +35,10 @@ public class Settings
     category = "subtick"
   )
   public static String subtickDimensionFormat = "im";
+
+  @Rule(
+    desc = "Color for subtick queueStep highlighting",
+    category = "subtick"
+  )
+  public static int subtickHighlightColor = 0xFFFFFF;
 }
