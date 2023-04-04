@@ -24,6 +24,9 @@
     ],
     "preLaunch": [
       "subtick.PreLaunch"
+    ],
+    "g4mespeed": [
+      "subtick.g4mespeed.SubtickExtension"
     ]
   },
   "mixins": [

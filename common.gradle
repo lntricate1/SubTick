@@ -19,6 +19,9 @@ repositories {
   maven {
     url 'https://www.cursemaven.com'
   }
+  maven {
+    url 'https://maven.g4mesoft.com/releases'
+  }
 }
 
 dependencies {
@@ -32,6 +35,7 @@ dependencies {
   include "com.github.LlamaLad7:MixinExtras:0.1.1"
   // mods
   modImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
+  modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
 }
 
 loom {
