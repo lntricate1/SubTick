@@ -24,17 +24,9 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 
 - `-` Allow the client to animate moving blocks 1 by 1, to show the movement when ticking BlockEntities.
 - `-` Fix some chunk unloading stuff with player movement while frozen.
+- `-` Fix 2 unchecked cast warnings caused by an accessor mixin.
+- `-` Migrate to mojang mappings.
 - `-` etc... (aka put it on cmp and have people report bugs)
 
 - `~~` Fix compat with multimeter.
 - `~` Add QOL stuff to command syntax.
-- `+` Fix client frozen state not updating when changing dimensions.
-- `+` Fix compat with lithium.
-- `+` Fix an issue with tile ticks when one dimension is frozen and another isn't.
-- `+` Fix fluidTick stepping saying "tile ticks".
-- `+` Capitalize dimension names.
-- `+` Fix compat with g4mespeed.
-- `+` Add radius flag to queueStep, because stepping through everything in the world before getting to what you want is annoying.
-- `+` Give an indication when the count attempted to queueStep through is exhausted.
-- `+` Add tile tick stepping and fluid tick stepping to queueStep.
-- `+` Attempt to simplify all command feedback to occupy less screen space.
