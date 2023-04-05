@@ -6,16 +6,16 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import carpet.network.ServerNetworkHandler;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import subtick.TickHandlers;
 
 @Mixin(ServerNetworkHandler.class)
 public class ServerNetworkHandlerMixin
 {
   @Inject(method = "onHello", at = @At("TAIL"))
-  private static void onHello(ServerPlayerEntity player, PacketByteBuf data, CallbackInfo ci)
+  private static void onHello(ServerPlayer player, FriendlyByteBuf data, CallbackInfo ci)
   {
-    TickHandlers.getHandler(player.world.getRegistryKey()).updateFrozenStateToConnectedPlayer(player);
+    TickHandlers.getHandler(player.level.dimension()).updateFrozenStateToConnectedPlayer(player);
   }
 }

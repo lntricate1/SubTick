@@ -4,9 +4,9 @@
   "package": "subtick.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "ServerWorldMixin",
-    "ServerPlayerEntityMixin",
-    "WorldMixin",
+    "ServerLevelMixin",
+    "ServerPlayerMixin",
+    "LevelMixin",
 
     "carpet.ServerNetworkHandlerAccessor",
     "carpet.ClientNetworkHandlerMixin",
@@ -17,7 +17,7 @@
   ],
   "client": [
     "EntityMixin",
-    "WorldRendererMixin"
+    "LevelRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
 import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
-import net.minecraft.world.ScheduledTick;
+import net.minecraft.world.level.TickNextTickData;
 
 @Mixin(LithiumServerTickScheduler.class)
 public interface LithiumServerTickSchedulerAccessor<T>
@@ -21,5 +21,5 @@ public interface LithiumServerTickSchedulerAccessor<T>
   public ObjectOpenHashSet<TickEntry<T>> getExecutingTicksSet();
 
   @Accessor(value = "tickConsumer", remap = false)
-  public Consumer<ScheduledTick<T>> getTickConsumer();
+  public Consumer<TickNextTickData<T>> getTickConsumer();
 }

@@ -4,28 +4,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.math.Quaternion;
-import net.minecraft.util.math.Vec3f;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
 
 public class RenderHandler
 {
-  private static MinecraftClient mc = MinecraftClient.getInstance();
+  private static Minecraft mc = Minecraft.getInstance();
   private static ArrayList<Shape> shapes = new ArrayList<Shape>();
 
   public static void render()
   {
     RenderSystem.setShader(GameRenderer::getPositionColorShader);
     RenderSystem.disableDepthTest();
-    Camera camera = mc.gameRenderer.getCamera();
+    Camera camera = mc.gameRenderer.getMainCamera();
 
     for(Shape shape : List.copyOf(shapes))
       shape.render(camera);
@@ -65,14 +62,14 @@ public class RenderHandler
     @Override
     public void render(Camera camera)
     {
-      double cx = camera.getPos().getX();
-      double cy = camera.getPos().getY();
-      double cz = camera.getPos().getZ();
-      BufferBuilder buffer = Tessellator.getInstance().getBuffer();
-      buffer.begin(VertexFormat.DrawMode.DEBUG_LINES, VertexFormats.POSITION_COLOR);
-      buffer.vertex(x-cx, y-cy, z-cz).color(((color >> 16) & 0xFF) / 255F, ((color >> 8) & 0xFF) / 255F, (color & 0xFF) / 255F, 1F).next();
-      buffer.vertex(X-cx, Y-cy, Z-cz).color(((color >> 16) & 0xFF) / 255F, ((color >> 8) & 0xFF) / 255F, (color & 0xFF) / 255F, 1F).next();
-      Tessellator.getInstance().draw();
+      double cx = camera.getPosition().x();
+      double cy = camera.getPosition().y();
+      double cz = camera.getPosition().z();
+      BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+      buffer.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+      buffer.vertex(x-cx, y-cy, z-cz).color(((color >> 16) & 0xFF) / 255F, ((color >> 8) & 0xFF) / 255F, (color & 0xFF) / 255F, 1F).endVertex();
+      buffer.vertex(X-cx, Y-cy, Z-cz).color(((color >> 16) & 0xFF) / 255F, ((color >> 8) & 0xFF) / 255F, (color & 0xFF) / 255F, 1F).endVertex();
+      Tesselator.getInstance().end();
     }
   }
 

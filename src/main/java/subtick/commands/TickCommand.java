@@ -2,11 +2,11 @@ package subtick.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.commands.CommandSourceStack;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
-import static net.minecraft.command.CommandSource.suggestMatching;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
+import static net.minecraft.commands.SharedSuggestionProvider.suggest;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.getInteger;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
@@ -23,7 +23,7 @@ import static subtick.TickHandlers.n;
 
 public class TickCommand
 {
-  public static void register(CommandDispatcher<ServerCommandSource> dispatcher)
+  public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
   {
     dispatcher.register(
       literal("tick")
@@ -32,12 +32,12 @@ public class TickCommand
       )
       .then(literal("freeze")
         .then(argument("phase", word())
-          .suggests((c, b) -> suggestMatching(TickHandlers.tickPhaseArgumentNames, b))
+          .suggests((c, b) -> suggest(TickHandlers.tickPhaseArgumentNames, b))
           .executes((c) -> toggleFreeze(c, TickHandlers.getPhase(getString(c, "phase"))))
         )
         .then(literal("on")
           .then(argument("phase", word())
-            .suggests((c, b) -> suggestMatching(TickHandlers.tickPhaseArgumentNames, b))
+            .suggests((c, b) -> suggest(TickHandlers.tickPhaseArgumentNames, b))
             .executes((c) -> freeze(c, TickHandlers.getPhase(getString(c, "phase"))))
           )
           .executes((c) -> freeze(c, TickHandlers.getPhase(Settings.subtickDefaultPhase)))
@@ -56,7 +56,7 @@ public class TickCommand
       .then(literal("step")
         .then(argument("ticks", integer(0))
           .then(argument("phase", word())
-            .suggests((c, b) -> suggestMatching(TickHandlers.tickPhaseArgumentNames, b))
+            .suggests((c, b) -> suggest(TickHandlers.tickPhaseArgumentNames, b))
             .executes((c) -> step(c, getInteger(c, "ticks"), TickHandlers.getPhase(getString(c, "phase"))))
           )
           .executes((c) -> step(c, getInteger(c, "ticks"), TickHandlers.getPhase(Settings.subtickDefaultPhase)))
@@ -66,16 +66,16 @@ public class TickCommand
     );
   }
 
-  private static int when(CommandContext<ServerCommandSource> c)
+  private static int when(CommandContext<CommandSourceStack> c)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
     Messenger.m(c.getSource(), handler.getDimension(), t(" is " + (handler.frozen ? "frozen" : "unfrozen") + " in "), handler.getPhase(), t(" phase"));
     return 0;
   }
 
-  private static int freeze(CommandContext<ServerCommandSource> c, int phase)
+  private static int freeze(CommandContext<CommandSourceStack> c, int phase)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
     if(handler.frozen || handler.freezing)
     {
       Messenger.m(c.getSource(), handler.getDimension(), t(" is already frozen"));
@@ -86,9 +86,9 @@ public class TickCommand
     return 0;
   }
 
-  private static int unFreeze(CommandContext<ServerCommandSource> c)
+  private static int unFreeze(CommandContext<CommandSourceStack> c)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
     if(handler.frozen || handler.freezing)
     {
       Messenger.m(c.getSource(), handler.getDimension(), t(" unfreezing"));
@@ -99,9 +99,9 @@ public class TickCommand
     return 0;
   }
 
-  private static int toggleFreeze(CommandContext<ServerCommandSource> c, int phase)
+  private static int toggleFreeze(CommandContext<CommandSourceStack> c, int phase)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
     if(handler.frozen || handler.freezing)
     {
       unFreeze(c);
@@ -113,9 +113,9 @@ public class TickCommand
     return 0;
   }
 
-  public static int step(CommandContext<ServerCommandSource> c, int ticks, int phase)
+  public static int step(CommandContext<CommandSourceStack> c, int ticks, int phase)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
     if(!handler.canStep(c, ticks, phase)) return 1;
 
     Messenger.m(c.getSource(), handler.getDimension(), t(" stepping "), n(ticks), t(" tick" + (ticks == 1 ? "" : "s") + ", ending at "), TickHandlers.getPhase(phase), t(" phase"));

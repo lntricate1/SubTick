@@ -1,14 +1,15 @@
 package subtick;
 
-import java.util.Map;
 import java.util.HashMap;
-import net.minecraft.util.registry.RegistryKey;
-import net.minecraft.world.World;
-import net.minecraft.server.world.ServerWorld;
+import java.util.Map;
+
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 
 public class TickHandlers
 {
-  private static Map<RegistryKey<World>, TickHandler> tickHandlers = new HashMap<RegistryKey<World>, TickHandler>();
+  private static Map<ResourceKey<Level>, TickHandler> tickHandlers = new HashMap<ResourceKey<Level>, TickHandler>();
 
   public static final int
     WORLD_BORDER = 0,
@@ -102,12 +103,12 @@ public class TickHandlers
     return Settings.subtickNumberFormat + " " + x;
   }
 
-  public static void addWorld(RegistryKey<World> key, ServerWorld world)
+  public static void addLevel(ResourceKey<Level> key, ServerLevel level)
   {
-    tickHandlers.put(key, new TickHandler(key.getValue().getPath(), world));
+    tickHandlers.put(key, new TickHandler(key.location().getPath(), level));
   }
 
-  public static TickHandler getHandler(RegistryKey<World> key)
+  public static TickHandler getHandler(ResourceKey<Level> key)
   {
     return tickHandlers.get(key);
   }
