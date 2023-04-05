@@ -37,7 +37,7 @@ public class TickHandler
 
   public TickHandler(String dimensionName, ServerWorld world)
   {
-    this.dimensionName = dimensionName;
+    this.dimensionName = dimensionName.substring(0, 1).toUpperCase() + dimensionName.substring(1);
     this.world = world;
   }
 
