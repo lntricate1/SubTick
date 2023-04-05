@@ -22,13 +22,13 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 
 `-` = todo, `+` = done, `~` = in progress, `~~` = someone else is on it
 
-- `-` Fix client frozen state not updating when changing dimensions.
 - `-` Allow the client to animate moving blocks 1 by 1, to show the movement when ticking BlockEntities.
 - `-` Fix some chunk unloading stuff with player movement while frozen.
 - `-` etc... (aka put it on cmp and have people report bugs)
 
 - `~~` Fix compat with multimeter.
 - `~` Add QOL stuff to command syntax.
+- `+` Fix client frozen state not updating when changing dimensions.
 - `+` Fix compat with lithium.
 - `+` Fix an issue with tile ticks when one dimension is frozen and another isn't.
 - `+` Fix fluidTick stepping saying "tile ticks".
