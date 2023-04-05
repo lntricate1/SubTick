@@ -4,27 +4,31 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import carpet.CarpetSettings;
 import carpet.utils.Messenger;
-
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.ServerWorld;
 
 // highlights
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 
 // packets
-import net.minecraft.server.network.ServerPlayerEntity;
 import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
+import carpet.CarpetSettings;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIntArray;
 import net.minecraft.nbt.NbtList;
 
 // tile tick step
+import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
+import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
+import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
 import net.minecraft.server.world.ServerTickScheduler;
 import net.minecraft.world.ScheduledTick;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.block.Block;
 // block event step
 import net.minecraft.server.world.BlockEvent;
 import net.minecraft.world.chunk.BlockEntityTickInvoker;
@@ -49,8 +53,9 @@ public class Queues
   private int range = -1;
 
   // Queues
-  public Iterator<Entity> entity_iterator = null;
-  public Iterator<BlockEntityTickInvoker> block_entity_iterator = null;
+  private int lithium_tile_tick_step_index = 0;
+  private Iterator<Entity> entity_iterator = null;
+  private Iterator<BlockEntityTickInvoker> block_entity_iterator = null;
 
   public Queues(TickHandler handler)
   {
@@ -76,10 +81,16 @@ public class Queues
       switch(scheduled)
       {
         case TickHandlers.TILE_TICK:
-          stepTileTicks(handler.world.blockTickScheduler, scheduled_count);
+          if(handler.world.blockTickScheduler instanceof LithiumServerTickScheduler)
+            stepTileTicksLithium((LithiumServerTickScheduler<Block>)handler.world.blockTickScheduler, scheduled_count);
+          else
+            stepTileTicks(handler.world.blockTickScheduler, scheduled_count);
           break;
         case TickHandlers.FLUID_TICK:
-          stepTileTicks(handler.world.fluidTickScheduler, scheduled_count);
+          if(handler.world.fluidTickScheduler instanceof LithiumServerTickScheduler)
+            stepTileTicksLithium((LithiumServerTickScheduler<Fluid>)handler.world.fluidTickScheduler, scheduled_count);
+          else
+            stepTileTicks(handler.world.fluidTickScheduler, scheduled_count);
           break;
         case TickHandlers.BLOCK_EVENT:
           stepBlockEvents(scheduled_count);
@@ -113,6 +124,38 @@ public class Queues
       outlineBoxes.replaceAll((box) -> box.offset(pos));
       boxes.addAll(outlineBoxes);
     }
+  }
+
+  public <T> void stepTileTicksLithium(LithiumServerTickScheduler<T> scheduler, int count)
+  {
+    if(stepping == -1)
+    {
+      stepping = handler.current_phase;
+      scheduler.selectTicks(handler.time);
+      lithium_tile_tick_step_index = 0;
+    }
+
+    ArrayList<TickEntry<T>> ticks = ((LithiumServerTickSchedulerAccessor<T>)scheduler).getExecutingTicks();
+    ArrayList<Box> boxes = new ArrayList<>();
+    int i = 0;
+    int ticksSize = ticks.size();
+    for(; lithium_tile_tick_step_index < ticksSize && i < count; lithium_tile_tick_step_index++)
+    {
+      TickEntry<T> tick = ticks.get(lithium_tile_tick_step_index);
+      if(tick == null)
+        continue;
+      tick.consumed = true;
+      ((LithiumServerTickSchedulerAccessor<T>)scheduler).getTickConsumer().accept(tick);
+      if(range == -1 || squaredDistance(tick.pos, pos) <= range)
+      {
+        addOutlines(tick.pos, boxes, handler.world);
+        i ++;
+      }
+    }
+    exhausted = lithium_tile_tick_step_index == ticksSize;
+    sendBlockHighlights(boxes, handler.world);
+    if(range != -1)
+      sendFeedback(i);
   }
 
   public <T> void stepTileTicks(ServerTickScheduler<T> scheduler, int count)
@@ -304,8 +347,16 @@ public class Queues
     {
       range = -1;
       stepTileTicks(handler.world.blockTickScheduler, 2147483647);
-      handler.world.blockTickScheduler.consumedTickActions.clear();
-      handler.world.blockTickScheduler.currentTickActions.clear();
+      if(handler.world.blockTickScheduler instanceof LithiumServerTickScheduler)
+      {
+        ((LithiumServerTickSchedulerAccessor)handler.world.blockTickScheduler).getExecutingTicks().clear();
+        ((LithiumServerTickSchedulerAccessor)handler.world.blockTickScheduler).getExecutingTicksSet().clear();
+      }
+      else
+      {
+        handler.world.blockTickScheduler.consumedTickActions.clear();
+        handler.world.blockTickScheduler.currentTickActions.clear();
+      }
       stepping = -1;
       clearBlockHighlights(handler.world);
     }

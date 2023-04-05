@@ -11,7 +11,9 @@
     "carpet.ServerNetworkHandlerAccessor",
     "carpet.ClientNetworkHandlerMixin",
     "carpet.ServerNetworkHandlerMixin",
-    "carpet.TickCommandMixin"
+    "carpet.TickCommandMixin",
+
+    "lithium.LithiumServerTickSchedulerAccessor"
   ],
   "client": [
     "EntityMixin",

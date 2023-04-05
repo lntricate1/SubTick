@@ -22,6 +22,12 @@ repositories {
   maven {
     url 'https://maven.g4mesoft.com/releases'
   }
+  maven {
+    url 'https://api.modrinth.com/maven'
+    content {
+      includeGroup 'maven.modrinth'
+    }
+  }
 }
 
 dependencies {
@@ -36,6 +42,7 @@ dependencies {
   // mods
   modImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
   modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
+  modImplementation "maven.modrinth:lithium:${project.lithium_version}"
 }
 
 loom {

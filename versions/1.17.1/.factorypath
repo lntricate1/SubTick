@@ -64,6 +64,7 @@
     <factorypathentry kind="EXTJAR" id="/home/intricate/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl-opengl/3.2.2/6ac5bb88b44c43ea195a570aab059f63da004cd8/lwjgl-opengl-3.2.2.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="EXTJAR" id="/home/intricate/.gradle/caches/modules-2/files-2.1/org.codehaus.mojo/animal-sniffer-annotations/1.17/f97ce6decaea32b36101e37979f8b647f00681fb/animal-sniffer-annotations-1.17.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="EXTJAR" id="/home/intricate/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.5/2852e6e05fbb95076fc091f6d1780f1f8fe35e0f/commons-io-2.5.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="EXTJAR" id="/home/intricate/16mods/SubTick/.gradle/loom-cache/remapped_mods/net_fabricmc_yarn_1_17_1_1_17_1_build_65_v2/maven/modrinth/lithium/mc1.17.1-0.7.5/lithium-mc1.17.1-0.7.5.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="EXTJAR" id="/home/intricate/.gradle/caches/modules-2/files-2.1/com.mojang/patchy/2.1.6/ce112c16c6275fdfff2d30208533ec906a191f71/patchy-2.1.6.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="EXTJAR" id="/home/intricate/.gradle/caches/modules-2/files-2.1/com.github.oshi/oshi-core/5.7.5/725374463734aacde70a3b20f018aca3f922655f/oshi-core-5.7.5.jar" enabled="true" runInBatchMode="false"/>
 </factorypath>
