@@ -40,5 +40,11 @@ public class Settings
     desc = "Color for subtick queueStep highlighting",
     category = "subtick"
   )
-  public static int subtickHighlightColor = 0xFFFFFF;
+  public static int subtickHighlightColor = 0x00FF00;
+
+  @Rule(
+    desc = "Default range for queueStep",
+    category = "subtick"
+  )
+  public static int subtickDefaultRange = 64;
 }

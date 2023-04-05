@@ -97,6 +97,11 @@ public class TickHandlers
     return Settings.subtickNumberFormat + " " + str;
   }
 
+  public static String n(int x)
+  {
+    return Settings.subtickNumberFormat + " " + x;
+  }
+
   public static void addWorld(RegistryKey<World> key, ServerWorld world)
   {
     tickHandlers.put(key, new TickHandler(key.getValue().getPath(), world));

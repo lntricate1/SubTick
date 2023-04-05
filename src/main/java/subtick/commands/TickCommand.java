@@ -21,7 +21,7 @@ import subtick.Settings;
 import static subtick.TickHandlers.t;
 import static subtick.TickHandlers.n;
 
-public class SubTickCommand
+public class TickCommand
 {
   public static void register(CommandDispatcher<ServerCommandSource> dispatcher)
   {
@@ -46,7 +46,7 @@ public class SubTickCommand
           .executes((c) -> unFreeze(c))
         )
         .then(literal("status")
-          .executes((c) -> status(c))
+          .executes((c) -> when(c))
         )
         .then(literal("deep")
           .executes((c) -> {Messenger.m(c.getSource(), t("This feature doesn't do anything because SubTick is installed.")); return 1;})
@@ -69,14 +69,7 @@ public class SubTickCommand
   private static int when(CommandContext<ServerCommandSource> c)
   {
     TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
-    Messenger.m(c.getSource(), t("Dimension "), handler.getDimension(), t(" is in "), handler.getPhase(), t(" phase"));
-    return 0;
-  }
-
-  private static int status(CommandContext<ServerCommandSource> c)
-  {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
-    Messenger.m(c.getSource(), t("Dimension "), handler.getDimension(), t(" is " + (handler.frozen ? "frozen" : "unfrozen") + " in "), handler.getPhase(), t(" phase"));
+    Messenger.m(c.getSource(), handler.getDimension(), t(" is " + (handler.frozen ? "frozen" : "unfrozen") + " in "), handler.getPhase(), t(" phase"));
     return 0;
   }
 
@@ -85,10 +78,10 @@ public class SubTickCommand
     TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
     if(handler.frozen || handler.freezing)
     {
-      Messenger.m(c.getSource(), t("Dimension "), handler.getDimension(), t(" is already frozen"));
+      Messenger.m(c.getSource(), handler.getDimension(), t(" is already frozen"));
       return 0;
     }
-    Messenger.m(c.getSource(), t("Freezing dimension "), handler.getDimension(), t(" in "), TickHandlers.getPhase(phase), t(" phase"));
+    Messenger.m(c.getSource(), handler.getDimension(), t(" freezing at "), TickHandlers.getPhase(phase), t(" phase"));
     handler.freeze(phase);
     return 0;
   }
@@ -96,13 +89,13 @@ public class SubTickCommand
   private static int unFreeze(CommandContext<ServerCommandSource> c)
   {
     TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
-    if(!(handler.frozen || handler.freezing))
+    if(handler.frozen || handler.freezing)
     {
-      Messenger.m(c.getSource(), t("Dimension "), handler.getDimension(), t(" is already unfrozen"));
+      Messenger.m(c.getSource(), handler.getDimension(), t(" unfreezing"));
+      handler.unfreeze();
       return 0;
     }
-    Messenger.m(c.getSource(), t("Unfreezing dimension "), handler.getDimension());
-    handler.unfreeze();
+    Messenger.m(c.getSource(), handler.getDimension(), t(" is not unfrozen"));
     return 0;
   }
 
@@ -120,18 +113,12 @@ public class SubTickCommand
     return 0;
   }
 
-  private static int step(CommandContext<ServerCommandSource> c, int ticks, int phase)
+  public static int step(CommandContext<ServerCommandSource> c, int ticks, int phase)
   {
     TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
-    if(!handler.canStep(c)) return 1;
+    if(!handler.canStep(c, ticks, phase)) return 1;
 
-    if(ticks == 0 && phase <= handler.current_phase)
-    {
-      Messenger.m(c.getSource(), TickHandlers.getPhase(phase), t(" phase already stepped to for this tick in dimension "), handler.getDimension(), t(". Change [ticks] to more than 0 to step to a new tick"));
-      return 1;
-    }
-
-    Messenger.m(c.getSource(), t("Stepping dimension "), handler.getDimension(), n(" " + ticks), t(" tick" + (ticks == 1 ? "" : "s") + ", ending at "), TickHandlers.getPhase(phase), t(" phase"));
+    Messenger.m(c.getSource(), handler.getDimension(), t(" stepping "), n(ticks), t(" tick" + (ticks == 1 ? "" : "s") + ", ending at "), TickHandlers.getPhase(phase), t(" phase"));
     handler.step(ticks, phase);
     return 0;
   }

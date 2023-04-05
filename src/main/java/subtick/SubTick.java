@@ -5,7 +5,8 @@ import carpet.CarpetServer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
-import subtick.commands.SubTickCommand;
+import subtick.commands.TickCommand;
+import subtick.commands.PhaseCommand;
 import subtick.commands.QueueCommand;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.server.command.ServerCommandSource;
@@ -32,7 +33,8 @@ public class SubTick implements CarpetExtension, ModInitializer
 
   @Override
   public void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher) {
-    SubTickCommand.register(dispatcher);
+    TickCommand.register(dispatcher);
+    PhaseCommand.register(dispatcher);
     QueueCommand.register(dispatcher);
   }
 }

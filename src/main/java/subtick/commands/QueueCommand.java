@@ -3,6 +3,7 @@ package subtick.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.util.math.BlockPos;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -13,15 +14,9 @@ import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
-import net.minecraft.server.world.ServerWorld;
-
-import carpet.utils.Messenger;
-
 import subtick.TickHandlers;
-import subtick.TickHandler;
 import subtick.Settings;
-import static subtick.TickHandlers.t;
-import static subtick.TickHandlers.n;
+import subtick.TickHandler;
 
 public class QueueCommand
 {
@@ -30,22 +25,34 @@ public class QueueCommand
     dispatcher.register(
       literal("queueStep")
       .then(argument("phase", word())
-        .suggests((c, b) -> suggestMatching(new String[]{"blockEvent", "entity", "blockEntity"}, b))
+        .suggests((c, b) -> suggestMatching(new String[]{"tileTick", "fluidTick", "blockEvent", "entity", "blockEntity"}, b))
         .then(argument("count", integer(1))
-          .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), getInteger(c, "count")))
+          .then(argument("range", integer(1))
+            .then(literal("force")
+              .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), getInteger(c, "count"), getInteger(c, "range"), true))
+            )
+            .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), getInteger(c, "count"), getInteger(c, "range"), false))
+          )
+          .then(literal("force")
+            .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), getInteger(c, "count"), Settings.subtickDefaultRange, true))
+          )
+          .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), getInteger(c, "count"), Settings.subtickDefaultRange, false))
         )
-        .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), 1))
+        .then(literal("force")
+          .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), 1, Settings.subtickDefaultRange, true))
+        )
+        .executes((c) -> step(c, TickHandlers.getPhase(getString(c, "phase")), 1, Settings.subtickDefaultRange, false))
       )
     );
   }
 
-  private static int step(CommandContext<ServerCommandSource> c, int phase, int count)
+  private static int step(CommandContext<ServerCommandSource> c, int phase, int count, int range, boolean force)
   {
     TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
-    if(!handler.canStep(c) || !handler.canQueueStep(c, phase)) return 1;
+    if(!force && !handler.queues.canStep(c, phase)) return 0;
 
-    Messenger.m(c.getSource(), t("Stepping dimension "), handler.getDimension(), n(" " + count + " "), TickHandlers.getPhase(phase, count));
-    handler.scheduleQueueStep(phase, count);
+    handler.queues.commandSource = c.getSource();
+    handler.queues.scheduleQueueStep(phase, count, new BlockPos(c.getSource().getPosition()), range);
     return 0;
   }
 }
