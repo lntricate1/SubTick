@@ -22,7 +22,6 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 
 `-` = todo, `+` = done, `~` = in progress, `~~` = someone else is on it
 
-- `-` Capitalize dimension names?
 - `-` Fix compat with lithium.
 - `-` Fix an issue with tile ticks when one dimension is frozen and another isn't.
 - `-` Allow the client to animate moving blocks 1 by 1, to show the movement when ticking BlockEntities.
@@ -31,6 +30,7 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 
 - `~~` Fix compat with multimeter.
 - `~` Add QOL stuff to command syntax.
+- `+` Capitalize dimension names.
 - `+` Fix compat with g4mespeed.
 - `+` Add radius flag to queueStep, because stepping through everything in the world before getting to what you want is annoying.
 - `+` Give an indication when the count attempted to queueStep through is exhausted.
