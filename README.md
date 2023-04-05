@@ -20,9 +20,8 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 
 ## To-do list
 
-`-` = todo, `+` = done, `~` = someone else is on it
+`-` = todo, `+` = done, `~` = in progress, `~~` = someone else is on it
 
-- Add QOL stuff to command syntax.
 - Capitalize dimension names?
 - Fix compat with lithium.
 - Fix an issue with tile ticks when one dimension is frozen and another isn't.
@@ -30,7 +29,8 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 - Fix some chunk unloading stuff with player movement while frozen.
 - etc... (aka put it on cmp and have people report bugs)
 
-~ Fix compat with multimeter.
+~~ Fix compat with multimeter.
+~ Add QOL stuff to command syntax.
 + Fix compat with g4mespeed.
 + Add radius flag to queueStep, because stepping through everything in the world before getting to what you want is annoying.
 + Give an indication when the count attempted to queueStep through is exhausted.
