@@ -11,12 +11,10 @@ import subtick.interfaces.IEntity;
 public class EntityMixin implements IEntity
 {
   private boolean cGlowing = false;
-  private int color = 0;
 
-  public void setCGlowing(boolean value, int color)
+  public void setCGlowing(boolean value)
   {
     cGlowing = value;
-    this.color = color;
   }
 
   @Inject(method = "isGlowing", at = @At("HEAD"), cancellable = true)

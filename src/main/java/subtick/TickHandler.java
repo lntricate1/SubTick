@@ -23,6 +23,7 @@ public class TickHandler
   public final ServerWorld world;
   public final String dimensionName;
   public final Queues queues = new Queues(this);
+  public long time;
 
   // Freeze
   public boolean frozen = false;
@@ -39,6 +40,12 @@ public class TickHandler
   {
     this.dimensionName = dimensionName.substring(0, 1).toUpperCase() + dimensionName.substring(1);
     this.world = world;
+    this.time = world.getTime();
+  }
+
+  public void tickTime()
+  {
+    time += 1L;
   }
 
   public boolean shouldTick(int phase)

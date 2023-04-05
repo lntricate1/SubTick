@@ -6,6 +6,7 @@
   "mixins": [
     "ServerWorldMixin",
     "ServerPlayerEntityMixin",
+    "WorldMixin",
 
     "carpet.ServerNetworkHandlerAccessor",
     "carpet.ClientNetworkHandlerMixin",

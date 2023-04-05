@@ -119,7 +119,7 @@ public class Queues
   {
     if(stepping == -1)
     {
-      stepping = TickHandlers.TILE_TICK;
+      stepping = handler.current_phase;
       Iterator<ScheduledTick<T>> iterator = scheduler.scheduledTickActionsInOrder.iterator();
 
       for(int i = 0; i < 65536 && iterator.hasNext();)
@@ -156,9 +156,11 @@ public class Queues
       else
         scheduler.schedule(tick.pos, tick.getObject(), 0);
 
-      addOutlines(tick.pos, boxes, handler.world);
       if(range == -1 || squaredDistance(tick.pos, pos) <= range)
+      {
+        addOutlines(tick.pos, boxes, handler.world);
         i ++;
+      }
     }
 
     sendBlockHighlights(boxes, handler.world);
@@ -178,9 +180,11 @@ public class Queues
       {
         handler.world.server.getPlayerManager().sendToAround((PlayerEntity)null, (double)blockEvent.getPos().getX(), (double)blockEvent.getPos().getY(), (double)blockEvent.getPos().getZ(), 64.0D, handler.world.getRegistryKey(), new BlockEventS2CPacket(blockEvent.getPos(), blockEvent.getBlock(), blockEvent.getType(), blockEvent.getData()));
 
-        addOutlines(blockEvent.getPos(), boxes, handler.world);
         if(range == -1 || squaredDistance(blockEvent.getPos(), pos) <= range)
+        {
+          addOutlines(blockEvent.getPos(), boxes, handler.world);
           i ++;
+        }
       }
     }
 
@@ -221,10 +225,12 @@ public class Queues
 
         handler.world.tickEntity(handler.world::tickEntity, entity);
 
-        ids.add(entity.getId());
       }
       if(range == -1 || squaredDistance(entity.getBlockPos(), pos) <= range)
+      {
+        ids.add(entity.getId());
         i ++;
+      }
     }
     exhausted = !entity_iterator.hasNext();
 
@@ -254,9 +260,11 @@ public class Queues
     while(i < count && block_entity_iterator.hasNext())
     {
       BlockEntityTickInvoker blockEntityTickInvoker = (BlockEntityTickInvoker)block_entity_iterator.next();
-      addOutlines(blockEntityTickInvoker.getPos(), boxes, handler.world);
       if(range == -1 || squaredDistance(blockEntityTickInvoker.getPos(), pos) <= range)
+      {
+        addOutlines(blockEntityTickInvoker.getPos(), boxes, handler.world);
         i ++;
+      }
 
       if(blockEntityTickInvoker.isRemoved())
         block_entity_iterator.remove();
@@ -272,7 +280,9 @@ public class Queues
 
   public void sendFeedback(int count)
   {
-    if(count != scheduled_count || isExhausted())
+    if(count == 0)
+      Messenger.m(commandSource, handler.getDimension(), t(" "), TickHandlers.getPhase(stepping), t(" queue exhausted"));
+    else if(count != scheduled_count || isExhausted())
       Messenger.m(commandSource, handler.getDimension(), t(" stepped"), n(" " + count + " "), TickHandlers.getPhase(stepping, count), t(" (queue exhausted)"));
     else
       Messenger.m(commandSource, handler.getDimension(), t(" stepped"), n(" " + count + " "), TickHandlers.getPhase(stepping, count));
@@ -381,12 +391,9 @@ public class Queues
     if(CarpetSettings.superSecretSetting) return;
 
     NbtCompound tag = new NbtCompound();
-    NbtCompound nbt = new NbtCompound();
-    nbt.putInt("color", Settings.subtickHighlightColor);
-    nbt.put("ids", new NbtIntArray(ids));
-    tag.put("EntityHighlighting", nbt);
+    tag.put("EntityHighlighting", new NbtIntArray(ids));
 
-    System.out.println("SENDING PACKET: " + tag.toString());
+    // System.out.println("SENDING PACKET: " + tag.toString());
 
     for(ServerPlayerEntity player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
     {
@@ -432,16 +439,13 @@ public class Queues
     switch(stepping)
     {
       case TickHandlers.TILE_TICK:
+      case TickHandlers.FLUID_TICK:
+      case TickHandlers.ENTITY:
+      case TickHandlers.BLOCK_ENTITY:
         noMore = exhausted;
         break;
       case TickHandlers.BLOCK_EVENT:
         noMore = handler.world.syncedBlockEventQueue.isEmpty();
-        break;
-      case TickHandlers.ENTITY:
-        noMore = exhausted;
-        break;
-      case TickHandlers.BLOCK_ENTITY:
-        noMore = exhausted;
         break;
     }
     return noMore;
@@ -456,6 +460,8 @@ public class Queues
       Messenger.m(c.getSource(), handler.getDimension(), t(" cannot queueStep because "), TickHandlers.getPhase(queue), t(" phase already happened"));
       return false;
     }
+    if(handler.current_phase < queue)
+      return true;
 
     if(isExhausted())
     {

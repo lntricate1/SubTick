@@ -45,18 +45,15 @@ public class ClientNetworkHandlerMixin
 
     dataHandlers.put("EntityHighlighting", (p, t) ->
     {
-      ClientWorld world = MinecraftClient.getInstance().world;
-      world.entityList.forEach((entity) -> {((IEntity)entity).setCGlowing(false, 0);});
+      MinecraftClient client = MinecraftClient.getInstance();
+      ClientWorld world = client.world;
+      world.entityList.forEach((entity) -> {((IEntity)entity).setCGlowing(false);});
 
-      int color = ((NbtCompound)t).getInt("color");
-      int[] ids = ((NbtCompound)t).getIntArray("ids");
-
-      System.out.println("RECIEVING PACKET: " + t.toString());
-      System.out.println("color: " + color);
-      System.out.println("ids: " + ids);
+      int[] ids = ((NbtIntArray)t).getIntArray();
 
       for(int i = 0; i < ids.length; i ++)
-        ((IEntity)world.getEntityById(ids[i])).setCGlowing(true, color);
+        ((IEntity)world.getEntityById(ids[i])).setCGlowing(true);
+      client.close();
     });
   }
 }

@@ -33,6 +33,8 @@ import net.minecraft.world.gen.Spawner;
 import net.minecraft.world.border.WorldBorder;
 // weather
 import net.minecraft.server.PlayerManager;
+import net.minecraft.block.Block;
+import net.minecraft.fluid.Fluid;
 import net.minecraft.network.Packet;
 // tile tick
 import net.minecraft.server.world.ServerTickScheduler;
@@ -57,6 +59,12 @@ public abstract class ServerWorldMixin extends World
   public ServerWorldMixin(MutableWorldProperties properties, RegistryKey<World> registryRef, final DimensionType dimensionType, Supplier<Profiler> profiler, boolean isClient, boolean debugWorld, long seed)
   {
     super(properties, registryRef, dimensionType, profiler, isClient, debugWorld, seed);
+  }
+
+  @Inject(method = "tickTime", at = @At("HEAD"))
+  private void tickTime(CallbackInfo ci)
+  {
+    TickHandlers.getHandler(getRegistryKey()).tickTime();
   }
 
   private boolean tickingWeather = false;
@@ -116,19 +124,19 @@ public abstract class ServerWorldMixin extends World
   // END WEATHER
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;tickTime()V"))
-  private boolean blockTick(ServerWorld self)
+  private boolean time(ServerWorld self)
   {
     return TickHandlers.getHandler(getRegistryKey()).shouldTick(TickHandlers.TIME);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerTickScheduler;tick()V", ordinal = 0))
-  private boolean blockTick(ServerTickScheduler self)
+  private boolean blockTick(ServerTickScheduler<Block> self)
   {
     return TickHandlers.getHandler(getRegistryKey()).shouldTick(TickHandlers.TILE_TICK);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerTickScheduler;tick()V", ordinal = 1))
-  private boolean fluidTick(ServerTickScheduler self)
+  private boolean fluidTick(ServerTickScheduler<Fluid> self)
   {
     return TickHandlers.getHandler(getRegistryKey()).shouldTick(TickHandlers.FLUID_TICK);
   }
