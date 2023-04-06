@@ -367,8 +367,16 @@ public class Queues
     {
       range = -1;
       stepScheduledTicks(handler.level.liquidTicks, 2147483647);
-      handler.level.liquidTicks.alreadyTicked.clear();
-      handler.level.liquidTicks.currentlyTicking.clear();
+      if(handler.level.liquidTicks instanceof LithiumServerTickScheduler)
+      {
+        ((LithiumServerTickSchedulerAccessor<?>)handler.level.liquidTicks).getExecutingTicks().clear();
+        ((LithiumServerTickSchedulerAccessor<?>)handler.level.liquidTicks).getExecutingTicksSet().clear();
+      }
+      else
+      {
+        handler.level.liquidTicks.alreadyTicked.clear();
+        handler.level.liquidTicks.currentlyTicking.clear();
+      }
       stepping = -1;
       clearBlockHighlights(handler.level);
     }
