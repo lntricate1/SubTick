@@ -29,4 +29,3 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 
 - `~~` Fix compat with multimeter.
 - `~` Add QOL stuff to command syntax.
-- `+` Migrate to mojang mappings.
