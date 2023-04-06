@@ -7,27 +7,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.WrapWithCondition;
 
+import subtick.TickHandler;
 import subtick.TickHandlers;
-
+import subtick.interfaces.ILevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerLevel;
-
-// Level constructor
-import net.minecraft.world.level.storage.WritableLevelData;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.level.dimension.DimensionType;
-import java.util.function.Supplier;
-import net.minecraft.util.profiling.ProfilerFiller;
-
-// ServerLevel constructor
-import net.minecraft.server.MinecraftServer;
-import java.util.concurrent.Executor;
-import net.minecraft.world.level.storage.LevelStorageSource.LevelStorageAccess;
-import net.minecraft.world.level.storage.ServerLevelData;
-import net.minecraft.server.level.progress.ChunkProgressListener;
-import net.minecraft.world.level.chunk.ChunkGenerator;
-import java.util.List;
-import net.minecraft.world.level.CustomSpawner;
 
 // world border
 import net.minecraft.world.level.border.WorldBorder;
@@ -36,6 +20,7 @@ import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.resources.ResourceKey;
 // tile tick
 import net.minecraft.world.level.ServerTickList;
 // raid
@@ -55,38 +40,34 @@ import java.util.function.Consumer;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 
 @Mixin(ServerLevel.class)
-public abstract class ServerLevelMixin extends Level
+public class ServerLevelMixin implements ILevel
 {
-  public ServerLevelMixin(WritableLevelData properties, ResourceKey<Level> registryRef, final DimensionType dimensionType, Supplier<ProfilerFiller> profiler, boolean isClient, boolean debugWorld, long seed)
-  {
-    super(properties, registryRef, dimensionType, profiler, isClient, debugWorld, seed);
+  private final TickHandler tickHandler = new TickHandler((ServerLevel)(Object)this);
+
+  @Override
+  public TickHandler getTickHandler() {
+    return tickHandler;
   }
 
   @Inject(method = "tickTime", at = @At("HEAD"))
   private void tickTime(CallbackInfo ci)
   {
-    TickHandlers.getHandler(dimension()).tickTime();
+    tickHandler.tickTime();
   }
 
   private boolean tickingWeather = false;
 
-  @Inject(method = "<init>", at = @At("TAIL"))
-  private void registerTickHandler(MinecraftServer server, Executor workerExecutor, LevelStorageAccess session, ServerLevelData properties, ResourceKey<Level> worldKey, DimensionType dimensionType, ChunkProgressListener worldGenerationProgressListener, ChunkGenerator chunkGenerator, boolean debugWorld, long seed, List<CustomSpawner> CustomSpawners, boolean shouldTickTime, CallbackInfo ci)
-  {
-    TickHandlers.addLevel(worldKey, (ServerLevel)(Object)this);
-  }
-
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/border/WorldBorder;tick()V"))
   private boolean worldBorder(WorldBorder self)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.WORLD_BORDER);
+    return tickHandler.shouldTick(TickHandlers.WORLD_BORDER);
   }
 
   // BEGIN WEATHER --------------------------------------------------------------------------------------------------------------------------
   @ModifyExpressionValue(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/dimension/DimensionType;hasSkyLight()Z"))
   private boolean weather1(boolean original)
   {
-    if(TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.WEATHER))
+    if(tickHandler.shouldTick(TickHandlers.WEATHER))
     {
       tickingWeather = true;
       return original;
@@ -127,31 +108,31 @@ public abstract class ServerLevelMixin extends Level
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tickTime()V"))
   private boolean time(ServerLevel self)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.TIME);
+    return tickHandler.shouldTick(TickHandlers.TIME);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/ServerTickList;tick()V", ordinal = 0))
   private boolean blockTick(ServerTickList<Block> self)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.TILE_TICK);
+    return tickHandler.shouldTick(TickHandlers.TILE_TICK);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/ServerTickList;tick()V", ordinal = 1))
   private boolean fluidTick(ServerTickList<Fluid> self)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.FLUID_TICK);
+    return tickHandler.shouldTick(TickHandlers.FLUID_TICK);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/raid/Raids;tick()V"))
   private boolean blockTick(Raids self)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.RAID);
+    return tickHandler.shouldTick(TickHandlers.RAID);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerChunkCache;tick(Ljava/util/function/BooleanSupplier;)V"))
   private boolean chunk(ServerChunkCache self, BooleanSupplier hasTimeLeft)
   {
-    if(TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.CHUNK))
+    if(tickHandler.shouldTick(TickHandlers.CHUNK))
       return true;
 
     // Send chunk updates and entity updates to clients
@@ -168,24 +149,24 @@ public abstract class ServerLevelMixin extends Level
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;runBlockEvents()V"))
   private boolean blockEvent(ServerLevel self)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.BLOCK_EVENT);
+    return tickHandler.shouldTick(TickHandlers.BLOCK_EVENT);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/entity/EntityTickList;forEach(Ljava/util/function/Consumer;)V"))
   private boolean entity(EntityTickList self, Consumer<Entity> action)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.ENTITY);
+    return tickHandler.shouldTick(TickHandlers.ENTITY);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
   private boolean blockEntity(ServerLevel self)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.BLOCK_ENTITY);
+    return tickHandler.shouldTick(TickHandlers.BLOCK_ENTITY);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/entity/PersistentEntitySectionManager;tick()V"))
   private boolean entityManagement(PersistentEntitySectionManager<Entity> self)
   {
-    return TickHandlers.getHandler(dimension()).shouldTick(TickHandlers.ENTITY_MANAGEMENT);
+    return tickHandler.shouldTick(TickHandlers.ENTITY_MANAGEMENT);
   }
 }

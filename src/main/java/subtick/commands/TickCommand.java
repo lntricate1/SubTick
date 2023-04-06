@@ -18,6 +18,8 @@ import carpet.utils.Messenger;
 import subtick.TickHandlers;
 import subtick.TickHandler;
 import subtick.Settings;
+import subtick.SubTick;
+
 import static subtick.TickHandlers.t;
 import static subtick.TickHandlers.n;
 
@@ -68,14 +70,14 @@ public class TickCommand
 
   private static int when(CommandContext<CommandSourceStack> c)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
+    TickHandler handler = SubTick.getTickHandler(c);
     Messenger.m(c.getSource(), handler.getDimension(), t(" is " + (handler.frozen ? "frozen" : "unfrozen") + " in "), handler.getPhase(), t(" phase"));
     return 0;
   }
 
   private static int freeze(CommandContext<CommandSourceStack> c, int phase)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
+    TickHandler handler = SubTick.getTickHandler(c);
     if(handler.frozen || handler.freezing)
     {
       Messenger.m(c.getSource(), handler.getDimension(), t(" is already frozen"));
@@ -88,7 +90,7 @@ public class TickCommand
 
   private static int unFreeze(CommandContext<CommandSourceStack> c)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
+    TickHandler handler = SubTick.getTickHandler(c);
     if(handler.frozen || handler.freezing)
     {
       Messenger.m(c.getSource(), handler.getDimension(), t(" unfreezing"));
@@ -101,7 +103,7 @@ public class TickCommand
 
   private static int toggleFreeze(CommandContext<CommandSourceStack> c, int phase)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
+    TickHandler handler = SubTick.getTickHandler(c);
     if(handler.frozen || handler.freezing)
     {
       unFreeze(c);
@@ -115,7 +117,7 @@ public class TickCommand
 
   public static int step(CommandContext<CommandSourceStack> c, int ticks, int phase)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
+    TickHandler handler = SubTick.getTickHandler(c);
     if(!handler.canStep(c, ticks, phase)) return 1;
 
     Messenger.m(c.getSource(), handler.getDimension(), t(" stepping "), n(ticks), t(" tick" + (ticks == 1 ? "" : "s") + ", ending at "), TickHandlers.getPhase(phase), t(" phase"));

@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import carpet.network.ServerNetworkHandler;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
-import subtick.TickHandlers;
+import subtick.SubTick;
 
 @Mixin(ServerNetworkHandler.class)
 public class ServerNetworkHandlerMixin
@@ -16,6 +16,6 @@ public class ServerNetworkHandlerMixin
   @Inject(method = "onHello", at = @At("TAIL"))
   private static void onHello(ServerPlayer player, FriendlyByteBuf data, CallbackInfo ci)
   {
-    TickHandlers.getHandler(player.level.dimension()).updateFrozenStateToConnectedPlayer(player);
+    SubTick.getTickHandler(player.level).updateFrozenStateToConnectedPlayer(player);
   }
 }

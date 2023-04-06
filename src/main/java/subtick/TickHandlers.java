@@ -1,16 +1,7 @@
 package subtick;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
-
 public class TickHandlers
 {
-  private static Map<ResourceKey<Level>, TickHandler> tickHandlers = new HashMap<ResourceKey<Level>, TickHandler>();
-
   public static final int
     WORLD_BORDER = 0,
     WEATHER = 1,
@@ -101,15 +92,5 @@ public class TickHandlers
   public static String n(int x)
   {
     return Settings.subtickNumberFormat + " " + x;
-  }
-
-  public static void addLevel(ResourceKey<Level> key, ServerLevel level)
-  {
-    tickHandlers.put(key, new TickHandler(key.location().getPath(), level));
-  }
-
-  public static TickHandler getHandler(ResourceKey<Level> key)
-  {
-    return tickHandlers.get(key);
   }
 }

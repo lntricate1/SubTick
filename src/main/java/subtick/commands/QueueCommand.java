@@ -16,6 +16,7 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import subtick.TickHandlers;
 import subtick.Settings;
+import subtick.SubTick;
 import subtick.TickHandler;
 
 public class QueueCommand
@@ -49,7 +50,7 @@ public class QueueCommand
   private static int step(CommandContext<CommandSourceStack> c, int phase, int count, int range, boolean force)
   {
     System.out.println(phase);
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
+    TickHandler handler = SubTick.getTickHandler(c);
     if(!force && !handler.queues.canStep(c, phase)) return 0;
 
     handler.queues.commandSource = c.getSource();

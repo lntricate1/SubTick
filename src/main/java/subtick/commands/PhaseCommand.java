@@ -16,6 +16,7 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import subtick.TickHandlers;
 import subtick.TickHandler;
+import subtick.SubTick;
 
 public class PhaseCommand
 {
@@ -39,7 +40,7 @@ public class PhaseCommand
 
   private static int stepCount(CommandContext<CommandSourceStack> c, int count)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
+    TickHandler handler = SubTick.getTickHandler(c);
     int phase = handler.current_phase + count;
     int ticks = phase / TickHandlers.TOTAL_PHASES;
     phase %= TickHandlers.TOTAL_PHASES;
@@ -48,7 +49,7 @@ public class PhaseCommand
 
   private static int stepToPhase(CommandContext<CommandSourceStack> c, int phase, boolean force)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
+    TickHandler handler = SubTick.getTickHandler(c);
     if(phase <= handler.current_phase && force)
       return TickCommand.step(c, 1, phase);
     else

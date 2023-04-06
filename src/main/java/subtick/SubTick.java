@@ -6,10 +6,13 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.world.level.Level;
 import subtick.commands.TickCommand;
+import subtick.interfaces.ILevel;
 import subtick.commands.PhaseCommand;
 import subtick.commands.QueueCommand;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.CommandContext;
 
 public class SubTick implements CarpetExtension, ModInitializer
 {
@@ -36,5 +39,13 @@ public class SubTick implements CarpetExtension, ModInitializer
     TickCommand.register(dispatcher);
     PhaseCommand.register(dispatcher);
     QueueCommand.register(dispatcher);
+  }
+
+  public static TickHandler getTickHandler(CommandContext<CommandSourceStack> c) {
+    return getTickHandler(c.getSource().getLevel());
+  }
+
+  public static TickHandler getTickHandler(Level level) {
+    return ((ILevel)level).getTickHandler();
   }
 }

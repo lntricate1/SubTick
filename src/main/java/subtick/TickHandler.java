@@ -21,7 +21,7 @@ import net.minecraft.network.FriendlyByteBuf;
 public class TickHandler
 {
   public final ServerLevel level;
-  public final String dimensionName;
+  public final String key;
   public final Queues queues = new Queues(this);
   public long time;
 
@@ -36,10 +36,10 @@ public class TickHandler
   private int remaining_ticks = 0;
   public int current_phase = 0;
 
-  public TickHandler(String dimensionName, ServerLevel level)
+  public TickHandler(ServerLevel level)
   {
-    this.dimensionName = dimensionName.substring(0, 1).toUpperCase() + dimensionName.substring(1);
     this.level = level;
+    this.key = level.dimension().location().toString();
     this.time = level.getGameTime();
   }
 
@@ -223,6 +223,6 @@ public class TickHandler
 
   public String getDimension()
   {
-    return Settings.subtickDimensionFormat + " " + dimensionName;
+    return Settings.subtickDimensionFormat + " " + key;
   }
 }
