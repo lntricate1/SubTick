@@ -2,25 +2,25 @@ package subtick;
 
 import static subtick.TickHandlers.t;
 
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
 
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.commands.CommandSourceStack;
 import carpet.utils.Messenger;
 
 import carpet.helpers.TickSpeed;
 import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
 import carpet.CarpetSettings;
 import carpet.network.CarpetClient;
-import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.nbt.CompoundTag;
 import io.netty.buffer.Unpooled;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 
 public class TickHandler
 {
-  public final ServerWorld world;
+  public final ServerLevel level;
   public final String dimensionName;
   public final Queues queues = new Queues(this);
   public long time;
@@ -36,11 +36,11 @@ public class TickHandler
   private int remaining_ticks = 0;
   public int current_phase = 0;
 
-  public TickHandler(String dimensionName, ServerWorld world)
+  public TickHandler(String dimensionName, ServerLevel level)
   {
     this.dimensionName = dimensionName.substring(0, 1).toUpperCase() + dimensionName.substring(1);
-    this.world = world;
-    this.time = world.getTime();
+    this.level = level;
+    this.time = level.getGameTime();
   }
 
   public void tickTime()
@@ -129,7 +129,7 @@ public class TickHandler
     }
   }
 
-  public boolean canStep(CommandContext<ServerCommandSource> c, int count, int phase)
+  public boolean canStep(CommandContext<CommandSourceStack> c, int count, int phase)
   {
     if(!frozen)
     {
@@ -158,25 +158,25 @@ public class TickHandler
     return true;
   }
 
-  public static void sendNbt(ServerPlayerEntity player, NbtCompound tag)
+  public static void sendNbt(ServerPlayer player, CompoundTag tag)
   {
-      PacketByteBuf packetBuf = new PacketByteBuf(Unpooled.buffer());
+      FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
       packetBuf.writeVarInt(CarpetClient.DATA);
       packetBuf.writeNbt(tag);
 
-      player.networkHandler.sendPacket(new CustomPayloadS2CPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+      player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
   }
 
   private void updateFrozenStateToConnectedPlayers()
   {
     if(CarpetSettings.superSecretSetting) return;
 
-    for(ServerPlayerEntity player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
+    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
     {
-      if(player.world != world) continue;
+      if(player.level != level) continue;
 
-      NbtCompound tag = new NbtCompound();
-      NbtCompound tickingState = new NbtCompound();
+      CompoundTag tag = new CompoundTag();
+      CompoundTag tickingState = new CompoundTag();
       tickingState.putBoolean("is_paused", frozen);
       tickingState.putBoolean("deepFreeze", frozen);
       tag.put("TickingState", tickingState);
@@ -185,14 +185,14 @@ public class TickHandler
     }
   }
 
-  public void updateFrozenStateToConnectedPlayer(ServerPlayerEntity player)
+  public void updateFrozenStateToConnectedPlayer(ServerPlayer player)
   {
     if(CarpetSettings.superSecretSetting) return;
 
     if(ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().containsKey(player))
     {
-      NbtCompound tag = new NbtCompound();
-      NbtCompound tickingState = new NbtCompound();
+      CompoundTag tag = new CompoundTag();
+      CompoundTag tickingState = new CompoundTag();
       tickingState.putBoolean("is_paused", frozen);
       tickingState.putBoolean("deepFreeze", frozen);
       tag.put("TickingState", tickingState);
@@ -205,11 +205,11 @@ public class TickHandler
   {
     if(CarpetSettings.superSecretSetting) return;
 
-    for(ServerPlayerEntity player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
+    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
     {
-      if(player.world != world) continue;
+      if(player.level != level) continue;
 
-      NbtCompound tag = new NbtCompound();
+      CompoundTag tag = new CompoundTag();
       tag.putInt("TickPlayerActiveTimeout", remaining_ticks + TickSpeed.PLAYER_GRACE);
 
       sendNbt(player, tag);

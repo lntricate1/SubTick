@@ -3,18 +3,18 @@ package subtick.mixins;
 import subtick.TickHandler;
 import subtick.TickHandlers;
 
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 
-@Mixin(World.class)
-public class WorldMixin
+@Mixin(Level.class)
+public class LevelMixin
 {
-  @ModifyReturnValue(method = "getTime", at = @At("RETURN"))
+  @ModifyReturnValue(method = "getGameTime", at = @At("RETURN"))
   private long getTime(long original)
   {
-    TickHandler handler = TickHandlers.getHandler(((World)(Object)this).getRegistryKey());
+    TickHandler handler = TickHandlers.getHandler(((Level)(Object)this).dimension());
     if(handler != null)
       return handler.time;
     else

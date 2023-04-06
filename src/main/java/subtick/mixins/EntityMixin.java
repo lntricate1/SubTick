@@ -1,6 +1,6 @@
 package subtick.mixins;
 
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,14 +17,14 @@ public class EntityMixin implements IEntity
     cGlowing = value;
   }
 
-  @Inject(method = "isGlowing", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "isCurrentlyGlowing", at = @At("HEAD"), cancellable = true)
   private void isGlowing(CallbackInfoReturnable<Boolean> cir)
   {
     if(cGlowing)
       cir.setReturnValue(true);
   }
 
-  @Inject(method = "getTeamColorValue", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "getTeamColor", at = @At("HEAD"), cancellable = true)
   private void changeTeamColor(CallbackInfoReturnable<Integer> cir)
   {
     if(cGlowing)

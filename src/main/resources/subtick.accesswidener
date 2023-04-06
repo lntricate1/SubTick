@@ -1,30 +1,30 @@
 accessWidener v1 named
 
-# Tile tick step
-accessible field net/minecraft/server/world/ServerWorld blockTickScheduler Lnet/minecraft/server/world/ServerTickScheduler;
-accessible field net/minecraft/server/world/ServerWorld fluidTickScheduler Lnet/minecraft/server/world/ServerTickScheduler;
-accessible field net/minecraft/server/world/ServerTickScheduler scheduledTickActions Ljava/util/Set;
-accessible field net/minecraft/server/world/ServerTickScheduler scheduledTickActionsInOrder Ljava/util/Set;
-accessible field net/minecraft/server/world/ServerTickScheduler currentTickActions Ljava/util/Queue;
-accessible field net/minecraft/server/world/ServerTickScheduler consumedTickActions Ljava/util/List;
-accessible field net/minecraft/server/world/ServerTickScheduler tickConsumer Ljava/util/function/Consumer;
+# Scheduled tick step
+accessible field net/minecraft/server/level/ServerLevel blockTicks Lnet/minecraft/world/level/ServerTickList;
+accessible field net/minecraft/server/level/ServerLevel liquidTicks Lnet/minecraft/world/level/ServerTickList;
+accessible field net/minecraft/world/level/ServerTickList tickNextTickSet Ljava/util/Set;
+accessible field net/minecraft/world/level/ServerTickList tickNextTickList Ljava/util/Set;
+accessible field net/minecraft/world/level/ServerTickList currentlyTicking Ljava/util/Queue;
+accessible field net/minecraft/world/level/ServerTickList alreadyTicked Ljava/util/List;
+accessible field net/minecraft/world/level/ServerTickList ticker Ljava/util/function/Consumer;
 
 # Block event step
-accessible field net/minecraft/server/world/ServerWorld syncedBlockEventQueue Lit/unimi/dsi/fastutil/objects/ObjectLinkedOpenHashSet;
-accessible field net/minecraft/server/world/ServerWorld server Lnet/minecraft/server/MinecraftServer;
-accessible method net/minecraft/server/world/ServerWorld processBlockEvent (Lnet/minecraft/server/world/BlockEvent;)Z
+accessible field net/minecraft/server/level/ServerLevel blockEvents Lit/unimi/dsi/fastutil/objects/ObjectLinkedOpenHashSet;
+accessible field net/minecraft/server/level/ServerLevel server Lnet/minecraft/server/MinecraftServer;
+accessible method net/minecraft/server/level/ServerLevel doBlockEvent (Lnet/minecraft/world/level/BlockEventData;)Z
 
 # Entity step
-accessible field net/minecraft/server/world/ServerWorld entityList Lnet/minecraft/world/EntityList;
-accessible field net/minecraft/client/world/ClientWorld entityList Lnet/minecraft/world/EntityList;
-accessible field net/minecraft/world/EntityList entities Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
-accessible field net/minecraft/world/EntityList iterating Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
-accessible method net/minecraft/server/world/ServerWorld shouldCancelSpawn (Lnet/minecraft/entity/Entity;)Z
+accessible field net/minecraft/server/level/ServerLevel entityTickList Lnet/minecraft/world/level/entity/EntityTickList;
+accessible field net/minecraft/client/multiplayer/ClientLevel tickingEntities Lnet/minecraft/world/level/entity/EntityTickList;
+accessible field net/minecraft/world/level/entity/EntityTickList active Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
+accessible field net/minecraft/world/level/entity/EntityTickList iterated Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
+accessible method net/minecraft/server/level/ServerLevel shouldDiscardEntity (Lnet/minecraft/world/entity/Entity;)Z
 
 # Block entity step
-accessible field net/minecraft/world/World iteratingTickingBlockEntities Z
-accessible field net/minecraft/world/World pendingBlockEntityTickers Ljava/util/List;
-accessible field net/minecraft/world/World blockEntityTickers Ljava/util/List;
+accessible field net/minecraft/world/level/Level tickingBlockEntities Z
+accessible field net/minecraft/world/level/Level pendingBlockEntityTickers Ljava/util/List;
+accessible field net/minecraft/world/level/Level blockEntityTickers Ljava/util/List;
 
-accessible method net/minecraft/server/world/ThreadedAnvilChunkStorage tickEntityMovement ()V
-accessible method net/minecraft/server/world/ThreadedAnvilChunkStorage entryIterator ()Ljava/lang/Iterable;
+accessible method net/minecraft/server/level/ChunkMap tick ()V
+accessible method net/minecraft/server/level/ChunkMap getChunks ()Ljava/lang/Iterable;

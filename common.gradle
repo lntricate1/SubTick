@@ -33,7 +33,10 @@ repositories {
 dependencies {
   // loom
   minecraft "com.mojang:minecraft:${project.minecraft_version}"
-  mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+  mappings loom.layered {
+    mappings file("../../lithium_mappings.tiny")
+    mappings loom.officialMojangMappings()
+  }
   modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
   // MixinExtras
   implementation "com.github.LlamaLad7:MixinExtras:0.1.1"
@@ -47,7 +50,7 @@ dependencies {
 
 loom {
   runConfigs.all {
-    runDir '../../run'
+    runDir 'run'
     vmArgs '-Dmixin.debug.export=true'
     ideConfigGenerated true
   }

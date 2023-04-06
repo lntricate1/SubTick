@@ -10,21 +10,21 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import carpet.network.ClientNetworkHandler;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtIntArray;
-import net.minecraft.nbt.NbtList;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.IntArrayTag;
+import net.minecraft.nbt.ListTag;
 import subtick.RenderHandler;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import subtick.interfaces.IEntity;
 
 @Mixin(ClientNetworkHandler.class)
 public class ClientNetworkHandlerMixin
 {
-  @Shadow private static Map<String, BiConsumer<ClientPlayerEntity, NbtElement>> dataHandlers;
+  @Shadow private static Map<String, BiConsumer<AbstractClientPlayer, Tag>> dataHandlers;
 
   @Inject(method = "<clinit>", at = @At("TAIL"))
   private static void addDataHandlers(CallbackInfo ci)
@@ -32,9 +32,9 @@ public class ClientNetworkHandlerMixin
     dataHandlers.put("BlockHighlighting", (p, t) ->
     {
       RenderHandler.clear();
-      for(int i = 0, count = ((NbtList)t).size(); i < count; i ++)
+      for(int i = 0, count = ((ListTag)t).size(); i < count; i ++)
       {
-        NbtCompound nbt = ((NbtList)t).getCompound(i);
+        CompoundTag nbt = ((ListTag)t).getCompound(i);
 
         RenderHandler.addCuboid(
           nbt.getDouble("x"), nbt.getDouble("y"), nbt.getDouble("z"),
@@ -45,14 +45,14 @@ public class ClientNetworkHandlerMixin
 
     dataHandlers.put("EntityHighlighting", (p, t) ->
     {
-      MinecraftClient client = MinecraftClient.getInstance();
-      ClientWorld world = client.world;
-      world.entityList.forEach((entity) -> {((IEntity)entity).setCGlowing(false);});
+      Minecraft client = Minecraft.getInstance();
+      ClientLevel level = client.level;
+      level.tickingEntities.forEach((entity) -> ((IEntity)entity).setCGlowing(false));
 
-      int[] ids = ((NbtIntArray)t).getIntArray();
+      int[] ids = ((IntArrayTag)t).getAsIntArray();
 
       for(int i = 0; i < ids.length; i ++)
-        ((IEntity)world.getEntityById(ids[i])).setCGlowing(true);
+        ((IEntity)level.getEntity(ids[i])).setCGlowing(true);
       client.close();
     });
   }

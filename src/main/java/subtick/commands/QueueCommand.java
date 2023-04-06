@@ -2,12 +2,12 @@ package subtick.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
-import static net.minecraft.command.CommandSource.suggestMatching;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
+import static net.minecraft.commands.SharedSuggestionProvider.suggest;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.getInteger;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
@@ -20,12 +20,12 @@ import subtick.TickHandler;
 
 public class QueueCommand
 {
-  public static void register(CommandDispatcher<ServerCommandSource> dispatcher)
+  public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
   {
     dispatcher.register(
       literal("queueStep")
       .then(argument("phase", word())
-        .suggests((c, b) -> suggestMatching(new String[]{"tileTick", "fluidTick", "blockEvent", "entity", "blockEntity"}, b))
+        .suggests((c, b) -> suggest(new String[]{"tileTick", "fluidTick", "blockEvent", "entity", "blockEntity"}, b))
         .then(argument("count", integer(1))
           .then(argument("range", integer(1))
             .then(literal("force")
@@ -46,10 +46,10 @@ public class QueueCommand
     );
   }
 
-  private static int step(CommandContext<ServerCommandSource> c, int phase, int count, int range, boolean force)
+  private static int step(CommandContext<CommandSourceStack> c, int phase, int count, int range, boolean force)
   {
     System.out.println(phase);
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getWorld().getRegistryKey());
+    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
     if(!force && !handler.queues.canStep(c, phase)) return 0;
 
     handler.queues.commandSource = c.getSource();
