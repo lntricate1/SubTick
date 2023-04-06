@@ -11,6 +11,7 @@ import subtick.commands.TickCommand;
 import subtick.interfaces.ILevel;
 import subtick.commands.PhaseCommand;
 import subtick.commands.QueueCommand;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 
@@ -41,11 +42,62 @@ public class SubTick implements CarpetExtension, ModInitializer
     QueueCommand.register(dispatcher);
   }
 
-  public static TickHandler getTickHandler(CommandContext<CommandSourceStack> c) {
+  public static String t(String str)
+  {
+    return Settings.subtickTextFormat + " " + str;
+  }
+
+  public static String n(String str)
+  {
+    return Settings.subtickNumberFormat + " " + str;
+  }
+
+  public static String n(int x)
+  {
+    return Settings.subtickNumberFormat + " " + x;
+  }
+
+  public static String p(TickPhase phase)
+  {
+    return Settings.subtickPhaseFormat + " " + phase.getName();
+  }
+
+  public static String p(TickPhase phase, int count)
+  {
+    return Settings.subtickPhaseFormat + " " + phase.getName(count);
+  }
+
+  public static String d(Level level)
+  {
+    return Settings.subtickDimensionFormat + " " + level.dimension().location().toString();
+  }
+
+  // The order can be different in different versions of the game...
+  public static TickPhase[] getTickPhaseOrder()
+  {
+    return new TickPhase[]
+    {
+      TickPhase.WORLD_BORDER,
+      TickPhase.WEATHER,
+      TickPhase.TIME,
+      TickPhase.BLOCK_TICK,
+      TickPhase.FLUID_TICK,
+      TickPhase.RAID,
+      TickPhase.CHUNK,
+      TickPhase.BLOCK_EVENT,
+      TickPhase.ENTITY,
+      TickPhase.BLOCK_ENTITY,
+      TickPhase.ENTITY_MANAGEMENT
+    };
+  }
+
+  public static TickHandler getTickHandler(CommandContext<CommandSourceStack> c)
+  {
     return getTickHandler(c.getSource().getLevel());
   }
 
-  public static TickHandler getTickHandler(Level level) {
+  public static TickHandler getTickHandler(Level level)
+  {
     return ((ILevel)level).getTickHandler();
   }
 }

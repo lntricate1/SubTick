@@ -1,5 +1,6 @@
 package subtick.commands;
 
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -15,13 +16,15 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import carpet.utils.Messenger;
 
-import subtick.TickHandlers;
 import subtick.TickHandler;
+import subtick.TickPhase;
 import subtick.Settings;
 import subtick.SubTick;
 
-import static subtick.TickHandlers.t;
-import static subtick.TickHandlers.n;
+import static subtick.SubTick.t;
+import static subtick.SubTick.n;
+import static subtick.SubTick.p;
+import static subtick.SubTick.d;
 
 public class TickCommand
 {
@@ -34,15 +37,15 @@ public class TickCommand
       )
       .then(literal("freeze")
         .then(argument("phase", word())
-          .suggests((c, b) -> suggest(TickHandlers.tickPhaseArgumentNames, b))
-          .executes((c) -> toggleFreeze(c, TickHandlers.getPhase(getString(c, "phase"))))
+          .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
+          .executes((c) -> toggleFreeze(c, TickPhase.byCommandKey(getString(c, "phase"))))
         )
         .then(literal("on")
           .then(argument("phase", word())
-            .suggests((c, b) -> suggest(TickHandlers.tickPhaseArgumentNames, b))
-            .executes((c) -> freeze(c, TickHandlers.getPhase(getString(c, "phase"))))
+            .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
+            .executes((c) -> freeze(c, TickPhase.byCommandKey(getString(c, "phase"))))
           )
-          .executes((c) -> freeze(c, TickHandlers.getPhase(Settings.subtickDefaultPhase)))
+          .executes((c) -> freeze(c, TickPhase.byCommandKey(Settings.subtickDefaultPhase)))
         )
         .then(literal("off")
           .executes((c) -> unFreeze(c))
@@ -53,17 +56,17 @@ public class TickCommand
         .then(literal("deep")
           .executes((c) -> {Messenger.m(c.getSource(), t("This feature doesn't do anything because SubTick is installed.")); return 1;})
         )
-        .executes((c) -> toggleFreeze(c, TickHandlers.getPhase(Settings.subtickDefaultPhase)))
+        .executes((c) -> toggleFreeze(c, TickPhase.byCommandKey(Settings.subtickDefaultPhase)))
       )
       .then(literal("step")
         .then(argument("ticks", integer(0))
           .then(argument("phase", word())
-            .suggests((c, b) -> suggest(TickHandlers.tickPhaseArgumentNames, b))
-            .executes((c) -> step(c, getInteger(c, "ticks"), TickHandlers.getPhase(getString(c, "phase"))))
+            .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
+            .executes((c) -> step(c, getInteger(c, "ticks"), TickPhase.byCommandKey(getString(c, "phase"))))
           )
-          .executes((c) -> step(c, getInteger(c, "ticks"), TickHandlers.getPhase(Settings.subtickDefaultPhase)))
+          .executes((c) -> step(c, getInteger(c, "ticks"), TickPhase.byCommandKey(Settings.subtickDefaultPhase)))
         )
-        .executes((c) -> step(c, 1, TickHandlers.getPhase(Settings.subtickDefaultPhase)))
+        .executes((c) -> step(c, 1, TickPhase.byCommandKey(Settings.subtickDefaultPhase)))
       )
     );
   }
@@ -71,21 +74,23 @@ public class TickCommand
   private static int when(CommandContext<CommandSourceStack> c)
   {
     TickHandler handler = SubTick.getTickHandler(c);
-    Messenger.m(c.getSource(), handler.getDimension(), t(" is " + (handler.frozen ? "frozen" : "unfrozen") + " in "), handler.getPhase(), t(" phase"));
-    return 0;
+    Messenger.m(c.getSource(), d(handler.level), t(" is " + (handler.frozen ? "frozen" : "unfrozen") + " in "), p(handler.current_phase), t(" phase"));
+    return Command.SINGLE_SUCCESS;
   }
 
-  private static int freeze(CommandContext<CommandSourceStack> c, int phase)
+  private static int freeze(CommandContext<CommandSourceStack> c, TickPhase phase)
   {
     TickHandler handler = SubTick.getTickHandler(c);
     if(handler.frozen || handler.freezing)
     {
-      Messenger.m(c.getSource(), handler.getDimension(), t(" is already frozen"));
-      return 0;
+      Messenger.m(c.getSource(), d(handler.level), t(" is already frozen"));
     }
-    Messenger.m(c.getSource(), handler.getDimension(), t(" freezing at "), TickHandlers.getPhase(phase), t(" phase"));
-    handler.freeze(phase);
-    return 0;
+    else
+    {
+      Messenger.m(c.getSource(), d(handler.level), t(" freezing at "), p(phase), t(" phase"));
+      handler.freeze(phase);
+    }
+    return Command.SINGLE_SUCCESS;
   }
 
   private static int unFreeze(CommandContext<CommandSourceStack> c)
@@ -93,15 +98,17 @@ public class TickCommand
     TickHandler handler = SubTick.getTickHandler(c);
     if(handler.frozen || handler.freezing)
     {
-      Messenger.m(c.getSource(), handler.getDimension(), t(" unfreezing"));
+      Messenger.m(c.getSource(), d(handler.level), t(" unfreezing"));
       handler.unfreeze();
-      return 0;
     }
-    Messenger.m(c.getSource(), handler.getDimension(), t(" is not unfrozen"));
-    return 0;
+    else
+    {
+      Messenger.m(c.getSource(), d(handler.level), t(" is not unfrozen"));
+    }
+    return Command.SINGLE_SUCCESS;
   }
 
-  private static int toggleFreeze(CommandContext<CommandSourceStack> c, int phase)
+  private static int toggleFreeze(CommandContext<CommandSourceStack> c, TickPhase phase)
   {
     TickHandler handler = SubTick.getTickHandler(c);
     if(handler.frozen || handler.freezing)
@@ -112,16 +119,16 @@ public class TickCommand
     {
       freeze(c, phase);
     }
-    return 0;
+    return Command.SINGLE_SUCCESS;
   }
 
-  public static int step(CommandContext<CommandSourceStack> c, int ticks, int phase)
+  public static int step(CommandContext<CommandSourceStack> c, int ticks, TickPhase phase)
   {
     TickHandler handler = SubTick.getTickHandler(c);
-    if(!handler.canStep(c, ticks, phase)) return 1;
+    if(!handler.canStep(c, ticks, phase)) return 0;
 
-    Messenger.m(c.getSource(), handler.getDimension(), t(" stepping "), n(ticks), t(" tick" + (ticks == 1 ? "" : "s") + ", ending at "), TickHandlers.getPhase(phase), t(" phase"));
+    Messenger.m(c.getSource(), d(handler.level), t(" stepping "), n(ticks), t(" tick" + (ticks == 1 ? "" : "s") + ", ending at "), p(phase), t(" phase"));
     handler.step(ticks, phase);
-    return 0;
+    return Command.SINGLE_SUCCESS;
   }
 }

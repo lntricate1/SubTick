@@ -1,6 +1,7 @@
 package subtick;
 
-import static subtick.TickHandlers.t;
+import static subtick.SubTick.t;
+import static subtick.SubTick.d;
 
 import net.minecraft.server.level.ServerLevel;
 
@@ -21,7 +22,6 @@ import net.minecraft.network.FriendlyByteBuf;
 public class TickHandler
 {
   public final ServerLevel level;
-  public final String key;
   public final Queues queues = new Queues(this);
   public long time;
 
@@ -29,17 +29,16 @@ public class TickHandler
   public boolean frozen = false;
   public boolean freezing = false;
   private boolean unfreezing = false;
-  private int target_phase = 0;
+  private TickPhase target_phase = TickPhase.byId(0);
   // Step
   private boolean stepping = false;
   private boolean in_first_stepped_phase = false;
   private int remaining_ticks = 0;
-  public int current_phase = 0;
+  public TickPhase current_phase = TickPhase.byId(0);
 
   public TickHandler(ServerLevel level)
   {
     this.level = level;
-    this.key = level.dimension().location().toString();
     this.time = level.getGameTime();
   }
 
@@ -48,7 +47,7 @@ public class TickHandler
     time += 1L;
   }
 
-  public boolean shouldTick(int phase)
+  public boolean shouldTick(TickPhase phase)
   {
     // Freezing
     if(freezing && phase == target_phase)
@@ -83,7 +82,7 @@ public class TickHandler
     // Stepping
     if(in_first_stepped_phase)
       updateTickPlayerActiveTimeoutToConnectedPlayers();
-    else if(phase == 0)
+    else if(phase.isFirst())
       --remaining_ticks;
 
     in_first_stepped_phase = false;
@@ -99,10 +98,10 @@ public class TickHandler
 
   public void advancePhase()
   {
-    current_phase = (current_phase + 1) % TickHandlers.TOTAL_PHASES;
+    current_phase = current_phase.next();
   }
 
-  public void step(int ticks, int phase)
+  public void step(int ticks, TickPhase phase)
   {
     stepping = true;
     in_first_stepped_phase = true;
@@ -112,7 +111,7 @@ public class TickHandler
       queues.finishQueueStep();
   }
 
-  public void freeze(int phase)
+  public void freeze(TickPhase phase)
   {
     freezing = true;
     target_phase = phase;
@@ -129,29 +128,29 @@ public class TickHandler
     }
   }
 
-  public boolean canStep(CommandContext<CommandSourceStack> c, int count, int phase)
+  public boolean canStep(CommandContext<CommandSourceStack> c, int count, TickPhase phase)
   {
     if(!frozen)
     {
-      Messenger.m(c.getSource(), getDimension(), t(" cannot step because it's not frozen"));
+      Messenger.m(c.getSource(), d(level), t(" cannot step because it's not frozen"));
       return false;
     }
 
     if(stepping)
     {
-      Messenger.m(c.getSource(), getDimension(), t(" cannot step because it's already tick stepping"));
+      Messenger.m(c.getSource(), d(level), t(" cannot step because it's already tick stepping"));
       return false;
     }
 
-    if(count == 0 && phase < current_phase)
+    if(count == 0 && phase.isPriorTo(current_phase))
     {
-      Messenger.m(c.getSource(), getDimension(), t(" cannot step to an earlier phase in the same tick"));
+      Messenger.m(c.getSource(), d(level), t(" cannot step to an earlier phase in the same tick"));
       return false;
     }
 
-    if(queues.scheduled != -1)
+    if(queues.scheduled != TickPhase.UNKNOWN)
     {
-      Messenger.m(c.getSource(), getDimension(), t(" cannot step because it's already queueStepping"));
+      Messenger.m(c.getSource(), d(level), t(" cannot step because it's already queueStepping"));
       return false;
     }
 
@@ -214,15 +213,5 @@ public class TickHandler
 
       sendNbt(player, tag);
     }
-  }
-
-  public String getPhase()
-  {
-    return Settings.subtickPhaseFormat + " " + TickHandlers.tickPhaseNames[current_phase];
-  }
-
-  public String getDimension()
-  {
-    return Settings.subtickDimensionFormat + " " + key;
   }
 }
