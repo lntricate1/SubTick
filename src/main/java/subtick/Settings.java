@@ -6,11 +6,11 @@ public class Settings
 {
   @Rule(
     desc = "The default tick phase to freeze at and step to",
-    options = {"worldBorder", "weather", "time", "tileTick", "fluidTick", "raid", "chunk", "blockEvent", "entity", "blockEntity", "entityManagement"},
+    options = {"worldBorder", "weather", "time", "blockTick", "fluidTick", "raid", "chunk", "blockEvent", "entity", "blockEntity", "entityManagement"},
     strict = true,
     category = "subtick"
   )
-  public static String subtickDefaultPhase = "tileTick";
+  public static String subtickDefaultPhase = "blockTick";
 
   @Rule(
     desc = "Text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",

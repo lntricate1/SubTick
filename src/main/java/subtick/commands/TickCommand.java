@@ -101,8 +101,9 @@ public class TickCommand
     {
       Messenger.m(c.getSource(), d(handler.level), t(" unfreezing"));
       handler.unfreeze();
+      return 0;
     }
-    Messenger.m(c.getSource(), d(handler.level), err(" is not unfrozen"));
+    Messenger.m(c.getSource(), d(handler.level), err(" is not frozen"));
     return Command.SINGLE_SUCCESS;
   }
 

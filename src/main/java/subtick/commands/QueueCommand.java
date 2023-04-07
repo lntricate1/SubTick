@@ -27,7 +27,7 @@ public class QueueCommand
     dispatcher.register(
       literal("queueStep")
       .then(argument("phase", word())
-        .suggests((c, b) -> suggest(new String[]{"tileTick", "fluidTick", "blockEvent", "entity", "blockEntity"}, b))
+        .suggests((c, b) -> suggest(new String[]{"blockTick", "fluidTick", "blockEvent", "entity", "blockEntity"}, b))
         .then(argument("count", integer(1))
           .then(argument("range", integer(1))
             .then(literal("force")
