@@ -14,8 +14,9 @@ import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
-import subtick.TickHandlers;
 import subtick.TickHandler;
+import subtick.TickPhase;
+import subtick.SubTick;
 
 public class PhaseCommand
 {
@@ -24,11 +25,11 @@ public class PhaseCommand
     dispatcher.register(
       literal("phaseStep")
       .then(argument("phase", word())
-        .suggests((c, b) -> suggest(TickHandlers.tickPhaseArgumentNames, b))
+        .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
         .then(literal("force")
-          .executes((c) -> stepToPhase(c, TickHandlers.getPhase(getString(c, "phase")), true))
+          .executes((c) -> stepToPhase(c, TickPhase.byCommandKey(getString(c, "phase")), true))
         )
-        .executes((c) -> stepToPhase(c, TickHandlers.getPhase(getString(c, "phase")), false))
+        .executes((c) -> stepToPhase(c, TickPhase.byCommandKey(getString(c, "phase")), false))
       )
       .then(argument("count", integer(1))
         .executes((c) -> stepCount(c, getInteger(c, "count")))
@@ -39,17 +40,16 @@ public class PhaseCommand
 
   private static int stepCount(CommandContext<CommandSourceStack> c, int count)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
-    int phase = handler.current_phase + count;
-    int ticks = phase / TickHandlers.TOTAL_PHASES;
-    phase %= TickHandlers.TOTAL_PHASES;
+    TickHandler handler = SubTick.getTickHandler(c);
+    TickPhase phase = handler.current_phase.next(count);
+    int ticks = count / TickPhase.getCommandKeys().size();
     return TickCommand.step(c, ticks, phase);
   }
 
-  private static int stepToPhase(CommandContext<CommandSourceStack> c, int phase, boolean force)
+  private static int stepToPhase(CommandContext<CommandSourceStack> c, TickPhase phase, boolean force)
   {
-    TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
-    if(phase <= handler.current_phase && force)
+    TickHandler handler = SubTick.getTickHandler(c);
+    if(!phase.isPosteriorTo(handler.current_phase) && force)
       return TickCommand.step(c, 1, phase);
     else
       return TickCommand.step(c, 0, phase);

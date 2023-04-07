@@ -16,7 +16,7 @@ import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
-import subtick.TickHandlers;
+import subtick.SubTick;
 import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
 
 public class ServerNetworkHandler
@@ -33,7 +33,7 @@ public class ServerNetworkHandler
       }
       catch(IllegalArgumentException e)
       {
-        Messenger.m(actor, TickHandlers.err("Highlights not sent because packet size exceeds maximum. Step less at a time to see highlights."));
+        Messenger.m(actor, SubTick.err("Highlights not sent because packet size exceeds maximum. Step less at a time to see highlights."));
       }
   }
 

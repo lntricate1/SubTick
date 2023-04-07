@@ -29,17 +29,19 @@ import net.minecraft.world.level.block.entity.TickingBlockEntity;
 // entity step
 import net.minecraft.world.entity.Entity;
 
-import static subtick.TickHandlers.t;
-import static subtick.TickHandlers.n;
-import static subtick.TickHandlers.err;
+import static subtick.SubTick.t;
+import static subtick.SubTick.n;
+import static subtick.SubTick.p;
+import static subtick.SubTick.d;
+import static subtick.SubTick.err;
 
 public class Queues
 {
   private final TickHandler handler;
   public CommandSourceStack commandSource;
 
-  public int stepping = -1;
-  public int scheduled = -1;
+  public TickPhase stepping = TickPhase.UNKNOWN;
+  public TickPhase scheduled = TickPhase.UNKNOWN;
   private int scheduled_count = 0;
   private boolean exhausted;
   private BlockPos pos = new BlockPos(0, 0, 0);
@@ -58,9 +60,9 @@ public class Queues
     this.handler = handler;
   }
 
-  public void scheduleQueueStep(int phase, int count, BlockPos pos, int range)
+  public void scheduleQueueStep(TickPhase phase, int count, BlockPos pos, int range)
   {
-    if(phase < handler.current_phase || isExhausted())
+    if(phase.isPriorTo(handler.current_phase) || isExhausted())
       handler.step(1, phase);
     else
       handler.step(0, phase);
@@ -72,29 +74,29 @@ public class Queues
 
   public void executeScheduledSteps()
   {
-    if(scheduled == -1) return;
+    if(scheduled == TickPhase.UNKNOWN) return;
 
     switch(scheduled)
     {
-      case TickHandlers.TILE_TICK:
+      case BLOCK_TICK:
         if(handler.level.blockTicks instanceof LithiumServerTickScheduler)
           stepScheduledTicksLithium((LithiumServerTickScheduler<Block>)handler.level.blockTicks, scheduled_count);
         else
           stepScheduledTicks(handler.level.blockTicks, scheduled_count);
         break;
-      case TickHandlers.FLUID_TICK:
+      case FLUID_TICK:
         if(handler.level.liquidTicks instanceof LithiumServerTickScheduler)
           stepScheduledTicksLithium((LithiumServerTickScheduler<Fluid>)handler.level.liquidTicks, scheduled_count);
         else
           stepScheduledTicks(handler.level.liquidTicks, scheduled_count);
         break;
-      case TickHandlers.BLOCK_EVENT:
+      case BLOCK_EVENT:
         stepBlockEvents(scheduled_count);
         break;
-      case TickHandlers.ENTITY:
+      case ENTITY:
         stepEntities(scheduled_count);
         break;
-      case TickHandlers.BLOCK_ENTITY:
+      case BLOCK_ENTITY:
         stepBlockEntities(scheduled_count);
         break;
     }
@@ -107,7 +109,7 @@ public class Queues
     entity_highlights = new ArrayList<>();
 
     sendFeedback();
-    scheduled = -1;
+    scheduled = TickPhase.UNKNOWN;
   }
 
   private static int squaredDistance(BlockPos a, BlockPos b)
@@ -132,7 +134,7 @@ public class Queues
 
   public <T> void stepScheduledTicksLithium(LithiumServerTickScheduler<T> scheduler, int count)
   {
-    if(stepping == -1)
+    if(stepping == TickPhase.UNKNOWN)
     {
       scheduler.selectTicks(handler.time);
       lithium_tile_tick_step_index = 0;
@@ -158,7 +160,7 @@ public class Queues
 
   public <T> void stepScheduledTicks(ServerTickList<T> tickList, int count)
   {
-    if(stepping == -1)
+    if(stepping == TickPhase.UNKNOWN)
     {
       Iterator<TickNextTickData<T>> iterator = tickList.tickNextTickList.iterator();
 
@@ -204,6 +206,7 @@ public class Queues
 
   private void stepBlockEvents(int count)
   {
+
     while(executed_steps < count && handler.level.blockEvents.size() != 0)
     {
       BlockEventData blockEvent = handler.level.blockEvents.removeFirst();
@@ -222,7 +225,7 @@ public class Queues
 
   private void stepEntities(int count)
   {
-    if(stepping == -1)
+    if(stepping == TickPhase.UNKNOWN)
     {
       handler.level.entityTickList.iterated = handler.level.entityTickList.active;
       entity_iterator = handler.level.entityTickList.active.values().iterator();
@@ -293,33 +296,33 @@ public class Queues
   public void sendFeedback()
   {
     if(executed_steps == 0)
-      Messenger.m(commandSource, handler.getDimension(), err(" "), TickHandlers.getPhase(stepping), err(" queue exhausted"));
+      Messenger.m(commandSource, d(handler.level), err(" "), p(stepping), err(" queue exhausted"));
     else if(executed_steps != scheduled_count || isExhausted())
-      Messenger.m(commandSource, handler.getDimension(), t(" stepped"), n(" " + executed_steps + " "), TickHandlers.getPhase(stepping, executed_steps), t(" (queue exhausted)"));
+      Messenger.m(commandSource, d(handler.level), t(" stepped"), n(" " + executed_steps + " "), p(stepping, executed_steps), t(" (queue exhausted)"));
     else
-      Messenger.m(commandSource, handler.getDimension(), t(" stepped"), n(" " + executed_steps + " "), TickHandlers.getPhase(stepping, executed_steps));
+      Messenger.m(commandSource, d(handler.level), t(" stepped"), n(" " + executed_steps + " "), p(stepping, executed_steps));
 
     executed_steps = 0;
   }
 
   public void finishQueueStep()
   {
-    if(stepping == -1)
+    if(stepping == TickPhase.UNKNOWN)
       return;
 
     range = -1;
     switch(stepping)
     {
-      case TickHandlers.TILE_TICK:
+      case BLOCK_TICK:
         finishStepTileTicks();
         break;
-      case TickHandlers.FLUID_TICK:
+      case FLUID_TICK:
         finishStepFluidTicks();
         break;
-      case TickHandlers.ENTITY:
+      case ENTITY:
         finishStepEntities();
         break;
-      case TickHandlers.BLOCK_ENTITY:
+      case BLOCK_ENTITY:
         finishStepBlockEntities();
         break;
     }
@@ -327,7 +330,7 @@ public class Queues
     entity_highlights = new ArrayList<>();
     executed_steps = 0;
     exhausted = false;
-    stepping = -1;
+    stepping = TickPhase.UNKNOWN;
   }
 
   private void finishStepTileTicks()
@@ -361,6 +364,7 @@ public class Queues
     else
     {
       stepScheduledTicks(handler.level.liquidTicks, 2147483647);
+
       handler.level.liquidTicks.alreadyTicked.clear();
       handler.level.liquidTicks.currentlyTicking.clear();
     }
@@ -389,39 +393,40 @@ public class Queues
 
   public boolean isExhausted()
   {
-    if(stepping == -1) return false;
+    if(stepping == TickPhase.UNKNOWN) return false;
 
     boolean noMore = false;
     switch(stepping)
     {
-      case TickHandlers.TILE_TICK:
-      case TickHandlers.FLUID_TICK:
-      case TickHandlers.ENTITY:
-      case TickHandlers.BLOCK_ENTITY:
+      case BLOCK_TICK:
+      case FLUID_TICK:
+      case ENTITY:
+      case BLOCK_ENTITY:
         noMore = exhausted;
         break;
-      case TickHandlers.BLOCK_EVENT:
+      case BLOCK_EVENT:
         noMore = handler.level.blockEvents.isEmpty();
         break;
     }
     return noMore;
   }
 
-  public boolean canStep(CommandContext<CommandSourceStack> c, int queue)
+  public boolean canStep(CommandContext<CommandSourceStack> c, TickPhase queue)
   {
     if(!handler.canStep(c, 0, queue)) return false;
 
-    if(handler.current_phase > queue)
+    if(handler.current_phase.isPosteriorTo(queue))
     {
-      Messenger.m(c.getSource(), handler.getDimension(), err(" cannot queueStep because "), TickHandlers.getPhase(queue), err(" phase already happened"));
+
+      Messenger.m(c.getSource(), d(handler.level), err(" cannot queueStep because "), p(queue), err(" phase already happened"));
       return false;
     }
-    if(handler.current_phase < queue)
+    if(handler.current_phase.isPriorTo(queue))
       return true;
 
     if(isExhausted())
     {
-      Messenger.m(c.getSource(), handler.getDimension(), err(" exhausted "), TickHandlers.getPhase(queue), err(" queue"));
+      Messenger.m(c.getSource(), d(handler.level), err(" exhausted "), p(queue), err(" queue"));
       return false;
     }
 
