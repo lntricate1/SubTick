@@ -16,6 +16,6 @@ public class ServerNetworkHandlerMixin
   @Inject(method = "onHello", at = @At("TAIL"))
   private static void onHello(ServerPlayer player, FriendlyByteBuf data, CallbackInfo ci)
   {
-    TickHandlers.getHandler(player.level.dimension()).updateFrozenStateToConnectedPlayer(player);
+    subtick.network.ServerNetworkHandler.updateFrozenStateToConnectedPlayer(player, TickHandlers.getHandler(player.level.dimension()).frozen);
   }
 }

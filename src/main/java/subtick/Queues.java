@@ -13,16 +13,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 
-// packets
-import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
-import carpet.CarpetSettings;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.IntArrayTag;
-import net.minecraft.nbt.ListTag;
-
 // tile tick step
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
+import subtick.network.ServerNetworkHandler;
 import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
 import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
 import net.minecraft.world.level.ServerTickList;
@@ -152,7 +145,7 @@ public class Queues
       }
     }
     exhausted = lithium_tile_tick_step_index == ticksSize;
-    sendBlockHighlights(aabbs, handler.level);
+    ServerNetworkHandler.sendBlockHighlights(aabbs, handler.level);
     if(range != -1)
       sendFeedback(i);
   }
@@ -205,7 +198,7 @@ public class Queues
       }
     }
 
-    sendBlockHighlights(aabbs, handler.level);
+    ServerNetworkHandler.sendBlockHighlights(aabbs, handler.level);
     if(range != -1)
       sendFeedback(i);
   }
@@ -230,7 +223,7 @@ public class Queues
       }
     }
 
-    sendBlockHighlights(aabbs, handler.level);
+    ServerNetworkHandler.sendBlockHighlights(aabbs, handler.level);
     if(range != -1)
       sendFeedback(i);
   }
@@ -277,7 +270,7 @@ public class Queues
     exhausted = !entity_iterator.hasNext();
 
     if(!ids.isEmpty())
-      sendEntityHighlights(ids, handler.level);
+      ServerNetworkHandler.sendEntityHighlights(ids, handler.level);
     if(range != -1)
       sendFeedback(i);
   }
@@ -315,7 +308,7 @@ public class Queues
     }
     exhausted = !block_entity_iterator.hasNext();
 
-    sendBlockHighlights(aabbs, handler.level);
+    ServerNetworkHandler.sendBlockHighlights(aabbs, handler.level);
     if(range != -1)
       sendFeedback(i);
   }
@@ -332,11 +325,16 @@ public class Queues
 
   public void finishQueueStep()
   {
+    if(stepping == -1)
+      return;
+
     finishStepTileTicks();
     finishStepFluidTicks();
     finishStepBlockEvents();
     finishStepEntities();
     finishStepBlockEntities();
+    ServerNetworkHandler.clearBlockHighlights(handler.level);
+    ServerNetworkHandler.clearEntityHighlights(handler.level);
     exhausted = false;
   }
 
@@ -357,7 +355,6 @@ public class Queues
         handler.level.blockTicks.currentlyTicking.clear();
       }
       stepping = -1;
-      clearBlockHighlights(handler.level);
     }
   }
 
@@ -378,7 +375,6 @@ public class Queues
         handler.level.liquidTicks.currentlyTicking.clear();
       }
       stepping = -1;
-      clearBlockHighlights(handler.level);
     }
   }
 
@@ -387,7 +383,6 @@ public class Queues
     if(stepping == TickHandlers.BLOCK_EVENT)
     {
       stepping = -1;
-      clearBlockHighlights(handler.level);
     }
   }
 
@@ -400,7 +395,6 @@ public class Queues
       handler.level.entityTickList.iterated = null;
       stepping = -1;
       handler.advancePhase();
-      clearEntityHighlights(handler.level);
     }
   }
 
@@ -413,83 +407,10 @@ public class Queues
       handler.level.tickingBlockEntities = false;
       stepping = -1;
       handler.advancePhase();
-      clearBlockHighlights(handler.level);
     }
   }
 
-  private static void sendBlockHighlights(List<AABB> aabbs, ServerLevel level)
-  {
-    if(CarpetSettings.superSecretSetting || aabbs.isEmpty()) return;
-
-    CompoundTag tag = new CompoundTag();
-    ListTag list = new ListTag();
-    for(AABB aabb : aabbs)
-    {
-      CompoundTag nbt = new CompoundTag();
-      nbt.putDouble("x", aabb.minX);
-      nbt.putDouble("y", aabb.minY);
-      nbt.putDouble("z", aabb.minZ);
-      nbt.putDouble("X", aabb.maxX);
-      nbt.putDouble("Y", aabb.maxY);
-      nbt.putDouble("Z", aabb.maxZ);
-      nbt.putDouble("color", Settings.subtickHighlightColor);
-      list.add(nbt);
-    }
-    tag.put("BlockHighlighting", list);
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-      TickHandler.sendNbt(player, tag);
-    }
-  }
-
-  private static void sendEntityHighlights(List<Integer> ids, ServerLevel level)
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    CompoundTag tag = new CompoundTag();
-    tag.put("EntityHighlighting", new IntArrayTag(ids));
-
-    // System.out.println("SENDING PACKET: " + tag.toString());
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-      TickHandler.sendNbt(player, tag);
-    }
-  }
-
-  private static void clearBlockHighlights(ServerLevel level)
-  {
-    CompoundTag tag = new CompoundTag();
-    tag.put("BlockHighlighting", new ListTag());
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-      TickHandler.sendNbt(player, tag);
-    }
-  }
-
-  private static void clearEntityHighlights(ServerLevel level)
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    CompoundTag tag = new CompoundTag();
-    CompoundTag nbt = new CompoundTag();
-    nbt.putInt("color", 0);
-    nbt.put("ids", new IntArrayTag(new int[]{}));
-    tag.put("EntityHighlighting", nbt);
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-      TickHandler.sendNbt(player, tag);
-    }
-  }
-
-  private boolean isExhausted()
+  public boolean isExhausted()
   {
     if(stepping == -1) return false;
 

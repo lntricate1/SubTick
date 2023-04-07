@@ -10,6 +10,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import subtick.TickHandlers;
+import subtick.network.ServerNetworkHandler;
 
 @Mixin(ServerPlayer.class)
 public class ServerPlayerMixin
@@ -18,13 +19,13 @@ public class ServerPlayerMixin
   @Inject(method = "changeDimension", at = @At("RETURN"))
   private void changeDimension(ServerLevel destination, CallbackInfoReturnable<Entity> cir)
   {
-    TickHandlers.getHandler(destination.dimension()).updateFrozenStateToConnectedPlayer((ServerPlayer)(Object)this);
+    ServerNetworkHandler.updateFrozenStateToConnectedPlayer((ServerPlayer)(Object)this, TickHandlers.getHandler(destination.dimension()).frozen);
   }
 
   // Needed to account for teleports
   @Inject(method = "triggerDimensionChangeTriggers", at = @At("RETURN"))
   private void changeDimension2(ServerLevel origin, CallbackInfo ci)
   {
-    TickHandlers.getHandler(((ServerPlayer)(Object)this).level.dimension()).updateFrozenStateToConnectedPlayer((ServerPlayer)(Object)this);
+    ServerNetworkHandler.updateFrozenStateToConnectedPlayer((ServerPlayer)(Object)this, TickHandlers.getHandler(((ServerPlayer)(Object)this).level.dimension()).frozen);
   }
 }

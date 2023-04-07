@@ -8,15 +8,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import carpet.utils.Messenger;
 
-import carpet.helpers.TickSpeed;
-import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
-import carpet.CarpetSettings;
-import carpet.network.CarpetClient;
-import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.nbt.CompoundTag;
-import io.netty.buffer.Unpooled;
-import net.minecraft.network.FriendlyByteBuf;
+import subtick.network.ServerNetworkHandler;
 
 public class TickHandler
 {
@@ -56,7 +48,7 @@ public class TickHandler
       freezing = false;
       frozen = true;
       current_phase = phase;
-      updateFrozenStateToConnectedPlayers();
+      ServerNetworkHandler.updateFrozenStateToConnectedPlayers(level, true);
       return false;
     }
 
@@ -73,7 +65,7 @@ public class TickHandler
     {
       unfreezing = false;
       frozen = false;
-      updateFrozenStateToConnectedPlayers();
+      ServerNetworkHandler.updateFrozenStateToConnectedPlayers(level, false);
       return true;
     }
 
@@ -82,7 +74,7 @@ public class TickHandler
 
     // Stepping
     if(in_first_stepped_phase)
-      updateTickPlayerActiveTimeoutToConnectedPlayers();
+      ServerNetworkHandler.updateTickPlayerActiveTimeoutToConnectedPlayers(level, remaining_ticks);
     else if(phase == 0)
       --remaining_ticks;
 
@@ -156,64 +148,6 @@ public class TickHandler
     }
 
     return true;
-  }
-
-  public static void sendNbt(ServerPlayer player, CompoundTag tag)
-  {
-      FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
-      packetBuf.writeVarInt(CarpetClient.DATA);
-      packetBuf.writeNbt(tag);
-
-      player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
-  }
-
-  private void updateFrozenStateToConnectedPlayers()
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-
-      CompoundTag tag = new CompoundTag();
-      CompoundTag tickingState = new CompoundTag();
-      tickingState.putBoolean("is_paused", frozen);
-      tickingState.putBoolean("deepFreeze", frozen);
-      tag.put("TickingState", tickingState);
-
-      sendNbt(player, tag);
-    }
-  }
-
-  public void updateFrozenStateToConnectedPlayer(ServerPlayer player)
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    if(ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().containsKey(player))
-    {
-      CompoundTag tag = new CompoundTag();
-      CompoundTag tickingState = new CompoundTag();
-      tickingState.putBoolean("is_paused", frozen);
-      tickingState.putBoolean("deepFreeze", frozen);
-      tag.put("TickingState", tickingState);
-
-      sendNbt(player, tag);
-    }
-  }
-
-  private void updateTickPlayerActiveTimeoutToConnectedPlayers()
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-
-      CompoundTag tag = new CompoundTag();
-      tag.putInt("TickPlayerActiveTimeout", remaining_ticks + TickSpeed.PLAYER_GRACE);
-
-      sendNbt(player, tag);
-    }
   }
 
   public String getPhase()
