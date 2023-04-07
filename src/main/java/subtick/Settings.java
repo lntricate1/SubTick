@@ -13,28 +13,34 @@ public class Settings
   public static String subtickDefaultPhase = "tileTick";
 
   @Rule(
-    desc = "Text format for normal text in subtick message feedback",
+    desc = "Text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
     category = "subtick"
   )
   public static String subtickTextFormat = "ig";
 
   @Rule(
-    desc = "Text format for numbers in subtick message feedback",
+    desc = "Text format for numbers in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
     category = "subtick"
   )
   public static String subtickNumberFormat = "iy";
 
   @Rule(
-    desc = "Text format for phases in subtick message feedback",
+    desc = "Text format for phases in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
     category = "subtick"
   )
   public static String subtickPhaseFormat = "it";
 
   @Rule(
-    desc = "Text format for dimensions in subtick message feedback",
+    desc = "Text format for dimensions in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
     category = "subtick"
   )
   public static String subtickDimensionFormat = "im";
+
+  @Rule(
+    desc = "Error text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+    category = "subtick"
+  )
+  public static String subtickErrorFormat = "ir";
 
   @Rule(
     desc = "Color for subtick queueStep highlighting",

@@ -20,6 +20,7 @@ import subtick.TickHandler;
 import subtick.Settings;
 import static subtick.TickHandlers.t;
 import static subtick.TickHandlers.n;
+import static subtick.TickHandlers.err;
 
 public class TickCommand
 {
@@ -49,7 +50,7 @@ public class TickCommand
           .executes((c) -> when(c))
         )
         .then(literal("deep")
-          .executes((c) -> {Messenger.m(c.getSource(), t("This feature doesn't do anything because SubTick is installed.")); return 1;})
+          .executes((c) -> {Messenger.m(c.getSource(), err("This feature doesn't do anything because SubTick is installed.")); return 1;})
         )
         .executes((c) -> toggleFreeze(c, TickHandlers.getPhase(Settings.subtickDefaultPhase)))
       )
@@ -78,7 +79,7 @@ public class TickCommand
     TickHandler handler = TickHandlers.getHandler(c.getSource().getLevel().dimension());
     if(handler.frozen || handler.freezing)
     {
-      Messenger.m(c.getSource(), handler.getDimension(), t(" is already frozen"));
+      Messenger.m(c.getSource(), handler.getDimension(), err(" is already frozen"));
       return 0;
     }
     Messenger.m(c.getSource(), handler.getDimension(), t(" freezing at "), TickHandlers.getPhase(phase), t(" phase"));
@@ -95,7 +96,7 @@ public class TickCommand
       handler.unfreeze();
       return 0;
     }
-    Messenger.m(c.getSource(), handler.getDimension(), t(" is not unfrozen"));
+    Messenger.m(c.getSource(), handler.getDimension(), err(" is not unfrozen"));
     return 0;
   }
 

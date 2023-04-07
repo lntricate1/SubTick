@@ -5,7 +5,9 @@ import java.util.List;
 import carpet.CarpetSettings;
 import carpet.helpers.TickSpeed;
 import carpet.network.CarpetClient;
+import carpet.utils.Messenger;
 import io.netty.buffer.Unpooled;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
@@ -14,17 +16,50 @@ import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
+import subtick.TickHandlers;
 import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
 
 public class ServerNetworkHandler
 {
+  public static void sendNbt(ServerPlayer player, CompoundTag tag, CommandSourceStack actor)
+  {
+      FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
+      packetBuf.writeVarInt(CarpetClient.DATA);
+      packetBuf.writeNbt(tag);
+
+      try
+      {
+        player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+      }
+      catch(IllegalArgumentException e)
+      {
+        Messenger.m(actor, TickHandlers.err("Highlights not sent because packet size exceeds maximum. Step less at a time to see highlights."));
+      }
+  }
+
   public static void sendNbt(ServerPlayer player, CompoundTag tag)
   {
       FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
       packetBuf.writeVarInt(CarpetClient.DATA);
       packetBuf.writeNbt(tag);
 
-      player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+      try
+      {
+        player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+      }
+      catch(IllegalArgumentException e)
+      {
+      }
+  }
+
+  public static void sendNbt(ServerLevel level, CompoundTag tag, CommandSourceStack actor)
+  {
+    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
+    {
+      if(player.level != level) continue;
+
+      sendNbt(player, tag, actor);
+    }
   }
 
   public static void sendNbt(ServerLevel level, CompoundTag tag)
@@ -71,7 +106,7 @@ public class ServerNetworkHandler
     sendNbt(level, tag);
   }
 
-  public static void sendBlockHighlights(List<AABB> aabbs, ServerLevel level)
+  public static void sendBlockHighlights(List<AABB> aabbs, ServerLevel level, CommandSourceStack actor)
   {
     if(CarpetSettings.superSecretSetting || aabbs.isEmpty()) return;
 
@@ -89,16 +124,16 @@ public class ServerNetworkHandler
       list.add(nbt);
     }
     tag.put("BlockHighlighting", list);
-    sendNbt(level, tag);
+    sendNbt(level, tag, actor);
   }
 
-  public static void sendEntityHighlights(List<Integer> ids, ServerLevel level)
+  public static void sendEntityHighlights(List<Integer> ids, ServerLevel level, CommandSourceStack actor)
   {
     if(CarpetSettings.superSecretSetting) return;
 
     CompoundTag tag = new CompoundTag();
     tag.put("EntityHighlighting", new IntArrayTag(ids));
-    sendNbt(level, tag);
+    sendNbt(level, tag, actor);
   }
 
   public static void clearBlockHighlights(ServerLevel level)

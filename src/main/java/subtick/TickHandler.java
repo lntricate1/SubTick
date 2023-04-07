@@ -1,6 +1,6 @@
 package subtick;
 
-import static subtick.TickHandlers.t;
+import static subtick.TickHandlers.err;
 
 import net.minecraft.server.level.ServerLevel;
 
@@ -125,25 +125,25 @@ public class TickHandler
   {
     if(!frozen)
     {
-      Messenger.m(c.getSource(), getDimension(), t(" cannot step because it's not frozen"));
+      Messenger.m(c.getSource(), getDimension(), err(" cannot step because it's not frozen"));
       return false;
     }
 
     if(stepping)
     {
-      Messenger.m(c.getSource(), getDimension(), t(" cannot step because it's already tick stepping"));
+      Messenger.m(c.getSource(), getDimension(), err(" cannot step because it's already tick stepping"));
       return false;
     }
 
     if(count == 0 && phase < current_phase)
     {
-      Messenger.m(c.getSource(), getDimension(), t(" cannot step to an earlier phase in the same tick"));
+      Messenger.m(c.getSource(), getDimension(), err(" cannot step to an earlier phase in the same tick"));
       return false;
     }
 
     if(queues.scheduled != -1)
     {
-      Messenger.m(c.getSource(), getDimension(), t(" cannot step because it's already queueStepping"));
+      Messenger.m(c.getSource(), getDimension(), err(" cannot step because it's already queueStepping"));
       return false;
     }
 

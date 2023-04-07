@@ -103,6 +103,11 @@ public class TickHandlers
     return Settings.subtickNumberFormat + " " + x;
   }
 
+  public static String err(String str)
+  {
+    return Settings.subtickErrorFormat + " " + str;
+  }
+
   public static void addLevel(ResourceKey<Level> key, ServerLevel level)
   {
     tickHandlers.put(key, new TickHandler(key.location().getPath(), level));
