@@ -52,7 +52,6 @@ public class ClientNetworkHandlerMixin
 
       for(int i = 0; i < ids.length; i ++)
         ((IEntity)level.getEntity(ids[i])).setCGlowing(true);
-      client.close();
     });
   }
 }
