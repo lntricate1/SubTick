@@ -1,7 +1,7 @@
 package subtick;
 
-import static subtick.SubTick.t;
 import static subtick.SubTick.d;
+import static subtick.SubTick.err;
 
 import net.minecraft.server.level.ServerLevel;
 
@@ -9,15 +9,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import carpet.utils.Messenger;
 
-import carpet.helpers.TickSpeed;
-import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
-import carpet.CarpetSettings;
-import carpet.network.CarpetClient;
-import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.nbt.CompoundTag;
-import io.netty.buffer.Unpooled;
-import net.minecraft.network.FriendlyByteBuf;
+import subtick.network.ServerNetworkHandler;
 
 public class TickHandler
 {
@@ -55,7 +47,7 @@ public class TickHandler
       freezing = false;
       frozen = true;
       current_phase = phase;
-      updateFrozenStateToConnectedPlayers();
+      ServerNetworkHandler.updateFrozenStateToConnectedPlayers(level, true);
       return false;
     }
 
@@ -72,7 +64,7 @@ public class TickHandler
     {
       unfreezing = false;
       frozen = false;
-      updateFrozenStateToConnectedPlayers();
+      ServerNetworkHandler.updateFrozenStateToConnectedPlayers(level, false);
       return true;
     }
 
@@ -81,7 +73,7 @@ public class TickHandler
 
     // Stepping
     if(in_first_stepped_phase)
-      updateTickPlayerActiveTimeoutToConnectedPlayers();
+      ServerNetworkHandler.updateTickPlayerActiveTimeoutToConnectedPlayers(level, remaining_ticks);
     else if(phase.isFirst())
       --remaining_ticks;
 
@@ -132,86 +124,28 @@ public class TickHandler
   {
     if(!frozen)
     {
-      Messenger.m(c.getSource(), d(level), t(" cannot step because it's not frozen"));
+      Messenger.m(c.getSource(), d(level), err(" cannot step because it's not frozen"));
       return false;
     }
 
     if(stepping)
     {
-      Messenger.m(c.getSource(), d(level), t(" cannot step because it's already tick stepping"));
+      Messenger.m(c.getSource(), d(level), err(" cannot step because it's already tick stepping"));
       return false;
     }
 
     if(count == 0 && phase.isPriorTo(current_phase))
     {
-      Messenger.m(c.getSource(), d(level), t(" cannot step to an earlier phase in the same tick"));
+      Messenger.m(c.getSource(), d(level), err(" cannot step to an earlier phase in the same tick"));
       return false;
     }
 
     if(queues.scheduled != TickPhase.UNKNOWN)
     {
-      Messenger.m(c.getSource(), d(level), t(" cannot step because it's already queueStepping"));
+      Messenger.m(c.getSource(), d(level), err(" cannot step because it's already queueStepping"));
       return false;
     }
 
     return true;
-  }
-
-  public static void sendNbt(ServerPlayer player, CompoundTag tag)
-  {
-      FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
-      packetBuf.writeVarInt(CarpetClient.DATA);
-      packetBuf.writeNbt(tag);
-
-      player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
-  }
-
-  private void updateFrozenStateToConnectedPlayers()
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-
-      CompoundTag tag = new CompoundTag();
-      CompoundTag tickingState = new CompoundTag();
-      tickingState.putBoolean("is_paused", frozen);
-      tickingState.putBoolean("deepFreeze", frozen);
-      tag.put("TickingState", tickingState);
-
-      sendNbt(player, tag);
-    }
-  }
-
-  public void updateFrozenStateToConnectedPlayer(ServerPlayer player)
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    if(ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().containsKey(player))
-    {
-      CompoundTag tag = new CompoundTag();
-      CompoundTag tickingState = new CompoundTag();
-      tickingState.putBoolean("is_paused", frozen);
-      tickingState.putBoolean("deepFreeze", frozen);
-      tag.put("TickingState", tickingState);
-
-      sendNbt(player, tag);
-    }
-  }
-
-  private void updateTickPlayerActiveTimeoutToConnectedPlayers()
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-
-      CompoundTag tag = new CompoundTag();
-      tag.putInt("TickPlayerActiveTimeout", remaining_ticks + TickSpeed.PLAYER_GRACE);
-
-      sendNbt(player, tag);
-    }
   }
 }

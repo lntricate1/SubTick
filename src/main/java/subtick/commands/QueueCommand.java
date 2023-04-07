@@ -50,7 +50,7 @@ public class QueueCommand
 
   private static int step(CommandContext<CommandSourceStack> c, TickPhase phase, int count, int range, boolean force)
   {
-    System.out.println(phase);
+
     TickHandler handler = SubTick.getTickHandler(c);
     if(!force && !handler.queues.canStep(c, phase)) return 0;
 

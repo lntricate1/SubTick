@@ -72,6 +72,11 @@ public class SubTick implements CarpetExtension, ModInitializer
     return Settings.subtickDimensionFormat + " " + level.dimension().location().toString();
   }
 
+  public static String err(String str)
+  {
+    return Settings.subtickErrorFormat + " " + str;
+  }
+
   // The order can be different in different versions of the game...
   public static TickPhase[] getTickPhaseOrder()
   {

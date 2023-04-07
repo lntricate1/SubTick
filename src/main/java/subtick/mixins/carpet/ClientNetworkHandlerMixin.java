@@ -38,8 +38,7 @@ public class ClientNetworkHandlerMixin
 
         RenderHandler.addCuboid(
           nbt.getDouble("x"), nbt.getDouble("y"), nbt.getDouble("z"),
-          nbt.getDouble("X"), nbt.getDouble("Y"), nbt.getDouble("Z"),
-          nbt.getInt("color"));
+          nbt.getDouble("X"), nbt.getDouble("Y"), nbt.getDouble("Z"));
       }
     });
 

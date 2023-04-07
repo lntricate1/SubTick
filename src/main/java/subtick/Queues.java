@@ -13,16 +13,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 
-// packets
-import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
-import carpet.CarpetSettings;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.IntArrayTag;
-import net.minecraft.nbt.ListTag;
-
 // tile tick step
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
+import subtick.network.ServerNetworkHandler;
 import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
 import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
 import net.minecraft.world.level.ServerTickList;
@@ -40,6 +33,7 @@ import static subtick.SubTick.t;
 import static subtick.SubTick.n;
 import static subtick.SubTick.p;
 import static subtick.SubTick.d;
+import static subtick.SubTick.err;
 
 public class Queues
 {
@@ -52,6 +46,9 @@ public class Queues
   private boolean exhausted;
   private BlockPos pos = new BlockPos(0, 0, 0);
   private int range = -1;
+  private int executed_steps = 0;
+  private ArrayList<AABB> block_highlights = new ArrayList<>();
+  private ArrayList<Integer> entity_highlights = new ArrayList<>();
 
   // Queues
   private int lithium_tile_tick_step_index = 0;
@@ -77,34 +74,42 @@ public class Queues
 
   public void executeScheduledSteps()
   {
-    if(scheduled != TickPhase.UNKNOWN)
+    if(scheduled == TickPhase.UNKNOWN) return;
+
+    switch(scheduled)
     {
-      switch(scheduled)
-      {
-        case BLOCK_TICK:
-          if(handler.level.blockTicks instanceof LithiumServerTickScheduler)
-            stepScheduledTicksLithium((LithiumServerTickScheduler<Block>)handler.level.blockTicks, scheduled_count);
-          else
-            stepScheduledTicks(handler.level.blockTicks, scheduled_count);
-          break;
-        case FLUID_TICK:
-          if(handler.level.liquidTicks instanceof LithiumServerTickScheduler)
-            stepScheduledTicksLithium((LithiumServerTickScheduler<Fluid>)handler.level.liquidTicks, scheduled_count);
-          else
-            stepScheduledTicks(handler.level.liquidTicks, scheduled_count);
-          break;
-        case BLOCK_EVENT:
-          stepBlockEvents(scheduled_count);
-          break;
-        case ENTITY:
-          stepEntities(scheduled_count);
-          break;
-        case BLOCK_ENTITY:
-          stepBlockEntities(scheduled_count);
-          break;
-      }
-      scheduled = TickPhase.UNKNOWN;
+      case BLOCK_TICK:
+        if(handler.level.blockTicks instanceof LithiumServerTickScheduler)
+          stepScheduledTicksLithium((LithiumServerTickScheduler<Block>)handler.level.blockTicks, scheduled_count);
+        else
+          stepScheduledTicks(handler.level.blockTicks, scheduled_count);
+        break;
+      case FLUID_TICK:
+        if(handler.level.liquidTicks instanceof LithiumServerTickScheduler)
+          stepScheduledTicksLithium((LithiumServerTickScheduler<Fluid>)handler.level.liquidTicks, scheduled_count);
+        else
+          stepScheduledTicks(handler.level.liquidTicks, scheduled_count);
+        break;
+      case BLOCK_EVENT:
+        stepBlockEvents(scheduled_count);
+        break;
+      case ENTITY:
+        stepEntities(scheduled_count);
+        break;
+      case BLOCK_ENTITY:
+        stepBlockEntities(scheduled_count);
+        break;
     }
+    stepping = scheduled;
+    if(block_highlights.size() > 0)
+      ServerNetworkHandler.sendBlockHighlights(block_highlights, handler.level, commandSource);
+    if(entity_highlights.size() > 0)
+      ServerNetworkHandler.sendEntityHighlights(entity_highlights, handler.level, commandSource);
+    block_highlights = new ArrayList<>();
+    entity_highlights = new ArrayList<>();
+
+    sendFeedback();
+    scheduled = TickPhase.UNKNOWN;
   }
 
   private static int squaredDistance(BlockPos a, BlockPos b)
@@ -115,15 +120,15 @@ public class Queues
     return x*x + y*y + z*z;
   }
 
-  private static void addOutlines(BlockPos pos, List<AABB> aabbs, ServerLevel level)
+  private void addOutlines(BlockPos pos, ServerLevel level)
   {
     List<AABB> outlineAabbs = level.getBlockState(pos).getShape(level, pos).toAabbs();
     if(outlineAabbs.isEmpty())
-      aabbs.add(new AABB(pos));
+      block_highlights.add(new AABB(pos));
     else
     {
       outlineAabbs.replaceAll((box) -> box.move(pos));
-      aabbs.addAll(outlineAabbs);
+      block_highlights.addAll(outlineAabbs);
     }
   }
 
@@ -131,16 +136,13 @@ public class Queues
   {
     if(stepping == TickPhase.UNKNOWN)
     {
-      stepping = handler.current_phase;
       scheduler.selectTicks(handler.time);
       lithium_tile_tick_step_index = 0;
     }
 
     ArrayList<TickEntry<T>> ticks = ((LithiumServerTickSchedulerAccessor<T>)scheduler).getExecutingTicks();
-    ArrayList<AABB> aabbs = new ArrayList<>();
-    int i = 0;
     int ticksSize = ticks.size();
-    for(; lithium_tile_tick_step_index < ticksSize && i < count; lithium_tile_tick_step_index++)
+    for(; lithium_tile_tick_step_index < ticksSize && executed_steps < count; lithium_tile_tick_step_index++)
     {
       TickEntry<T> tick = ticks.get(lithium_tile_tick_step_index);
       if(tick == null)
@@ -149,21 +151,17 @@ public class Queues
       ((LithiumServerTickSchedulerAccessor<T>)scheduler).getTickConsumer().accept(tick);
       if(range == -1 || squaredDistance(tick.pos, pos) <= range)
       {
-        addOutlines(tick.pos, aabbs, handler.level);
-        i ++;
+        addOutlines(tick.pos, handler.level);
+        executed_steps ++;
       }
     }
     exhausted = lithium_tile_tick_step_index == ticksSize;
-    sendBlockHighlights(aabbs, handler.level);
-    if(range != -1)
-      sendFeedback(i);
   }
 
   public <T> void stepScheduledTicks(ServerTickList<T> tickList, int count)
   {
     if(stepping == TickPhase.UNKNOWN)
     {
-      stepping = handler.current_phase;
       Iterator<TickNextTickData<T>> iterator = tickList.tickNextTickList.iterator();
 
       for(int i = 0; i < 65536 && iterator.hasNext();)
@@ -181,9 +179,7 @@ public class Queues
       }
     }
 
-    ArrayList<AABB> aabbs = new ArrayList<>();
-    int i = 0;
-    while(i < count)
+    while(executed_steps < count)
     {
       TickNextTickData<T> tick = tickList.currentlyTicking.poll();
       if(tick == null)
@@ -202,22 +198,16 @@ public class Queues
 
       if(range == -1 || squaredDistance(tick.pos, pos) <= range)
       {
-        addOutlines(tick.pos, aabbs, handler.level);
-        i ++;
+        addOutlines(tick.pos, handler.level);
+        executed_steps ++;
       }
     }
-
-    sendBlockHighlights(aabbs, handler.level);
-    if(range != -1)
-      sendFeedback(i);
   }
 
   private void stepBlockEvents(int count)
   {
-    stepping = TickPhase.BLOCK_EVENT;
-    ArrayList<AABB> aabbs = new ArrayList<>();
-    int i = 0;
-    while(i < count && handler.level.blockEvents.size() != 0)
+
+    while(executed_steps < count && handler.level.blockEvents.size() != 0)
     {
       BlockEventData blockEvent = handler.level.blockEvents.removeFirst();
       if(handler.level.doBlockEvent(blockEvent))
@@ -226,15 +216,11 @@ public class Queues
 
         if(range == -1 || squaredDistance(blockEvent.getPos(), pos) <= range)
         {
-          addOutlines(blockEvent.getPos(), aabbs, handler.level);
-          i ++;
+          addOutlines(blockEvent.getPos(), handler.level);
+          executed_steps ++;
         }
       }
     }
-
-    sendBlockHighlights(aabbs, handler.level);
-    if(range != -1)
-      sendFeedback(i);
   }
 
   private void stepEntities(int count)
@@ -243,12 +229,9 @@ public class Queues
     {
       handler.level.entityTickList.iterated = handler.level.entityTickList.active;
       entity_iterator = handler.level.entityTickList.active.values().iterator();
-      stepping = TickPhase.ENTITY;
     }
 
-    ArrayList<Integer> ids = new ArrayList<>();
-    int i = 0;
-    while(i < count && entity_iterator.hasNext())
+    while(executed_steps < count && entity_iterator.hasNext())
     {
       Entity entity = entity_iterator.next();
       if(entity.isRemoved()) continue;
@@ -272,21 +255,15 @@ public class Queues
       }
       if(range == -1 || squaredDistance(entity.getOnPos(), pos) <= range)
       {
-        ids.add(entity.getId());
-        i ++;
+        entity_highlights.add(entity.getId());
+        executed_steps ++;
       }
     }
     exhausted = !entity_iterator.hasNext();
-
-    if(!ids.isEmpty())
-      sendEntityHighlights(ids, handler.level);
-    if(range != -1)
-      sendFeedback(i);
   }
 
   private void stepBlockEntities(int count)
   {
-    stepping = TickPhase.BLOCK_ENTITY;
     if(!handler.level.tickingBlockEntities)
     {
       handler.level.tickingBlockEntities = true;
@@ -299,15 +276,13 @@ public class Queues
       block_entity_iterator = handler.level.blockEntityTickers.iterator();
     }
 
-    ArrayList<AABB> aabbs = new ArrayList<>();
-    int i = 0;
-    while(i < count && block_entity_iterator.hasNext())
+    while(executed_steps < count && block_entity_iterator.hasNext())
     {
       TickingBlockEntity ticker = block_entity_iterator.next();
       if(range == -1 || squaredDistance(ticker.getPos(), pos) <= range)
       {
-        addOutlines(ticker.getPos(), aabbs, handler.level);
-        i ++;
+        addOutlines(ticker.getPos(), handler.level);
+        executed_steps ++;
       }
 
       if(ticker.isRemoved())
@@ -316,182 +291,107 @@ public class Queues
         ticker.tick();
     }
     exhausted = !block_entity_iterator.hasNext();
-
-    sendBlockHighlights(aabbs, handler.level);
-    if(range != -1)
-      sendFeedback(i);
   }
 
-  public void sendFeedback(int count)
+  public void sendFeedback()
   {
-    if(count == 0)
-      Messenger.m(commandSource, d(handler.level), t(" "), p(stepping), t(" queue exhausted"));
-    else if(count != scheduled_count || isExhausted())
-      Messenger.m(commandSource, d(handler.level), t(" stepped"), n(" " + count + " "), p(stepping, count), t(" (queue exhausted)"));
+    if(executed_steps == 0)
+      Messenger.m(commandSource, d(handler.level), err(" "), p(stepping), err(" queue exhausted"));
+    else if(executed_steps != scheduled_count || isExhausted())
+      Messenger.m(commandSource, d(handler.level), t(" stepped"), n(" " + executed_steps + " "), p(stepping, executed_steps), t(" (queue exhausted)"));
     else
-      Messenger.m(commandSource, d(handler.level), t(" stepped"), n(" " + count + " "), p(stepping, count));
+      Messenger.m(commandSource, d(handler.level), t(" stepped"), n(" " + executed_steps + " "), p(stepping, executed_steps));
+
+    executed_steps = 0;
   }
 
   public void finishQueueStep()
   {
-    finishStepTileTicks();
-    finishStepFluidTicks();
-    finishStepBlockEvents();
-    finishStepEntities();
-    finishStepBlockEntities();
+    if(stepping == TickPhase.UNKNOWN)
+      return;
+
+    range = -1;
+    switch(stepping)
+    {
+      case BLOCK_TICK:
+        finishStepTileTicks();
+        break;
+      case FLUID_TICK:
+        finishStepFluidTicks();
+        break;
+      case ENTITY:
+        finishStepEntities();
+        break;
+      case BLOCK_ENTITY:
+        finishStepBlockEntities();
+        break;
+    }
+    block_highlights = new ArrayList<>();
+    entity_highlights = new ArrayList<>();
+    executed_steps = 0;
     exhausted = false;
+    stepping = TickPhase.UNKNOWN;
   }
 
   private void finishStepTileTicks()
   {
-    if(stepping == TickPhase.BLOCK_TICK)
+    if(handler.level.blockTicks instanceof LithiumServerTickScheduler)
     {
-      range = -1;
-      stepScheduledTicks(handler.level.blockTicks, 2147483647);
-      if(handler.level.blockTicks instanceof LithiumServerTickScheduler)
-      {
-        ((LithiumServerTickSchedulerAccessor<?>)handler.level.blockTicks).getExecutingTicks().clear();
-        ((LithiumServerTickSchedulerAccessor<?>)handler.level.blockTicks).getExecutingTicksSet().clear();
-      }
-      else
-      {
-        handler.level.blockTicks.alreadyTicked.clear();
-        handler.level.blockTicks.currentlyTicking.clear();
-      }
-      stepping = TickPhase.UNKNOWN;
-      clearBlockHighlights(handler.level);
+      stepScheduledTicksLithium((LithiumServerTickScheduler<Block>)handler.level.blockTicks, 2147483647);
+      ((LithiumServerTickSchedulerAccessor<?>)handler.level.blockTicks).getExecutingTicks().clear();
+      ((LithiumServerTickSchedulerAccessor<?>)handler.level.blockTicks).getExecutingTicksSet().clear();
     }
+    else
+    {
+      stepScheduledTicks(handler.level.blockTicks, 2147483647);
+      handler.level.blockTicks.alreadyTicked.clear();
+      handler.level.blockTicks.currentlyTicking.clear();
+    }
+
+    ServerNetworkHandler.clearBlockHighlights(handler.level);
+    handler.advancePhase();
   }
 
   private void finishStepFluidTicks()
   {
-    if(stepping == TickPhase.FLUID_TICK)
+    stepScheduledTicks(handler.level.liquidTicks, 2147483647);
+    if(handler.level.liquidTicks instanceof LithiumServerTickScheduler)
     {
-      range = -1;
+      stepScheduledTicksLithium((LithiumServerTickScheduler<Fluid>)handler.level.liquidTicks, 2147483647);
+      ((LithiumServerTickSchedulerAccessor<?>)handler.level.liquidTicks).getExecutingTicks().clear();
+      ((LithiumServerTickSchedulerAccessor<?>)handler.level.liquidTicks).getExecutingTicksSet().clear();
+    }
+    else
+    {
       stepScheduledTicks(handler.level.liquidTicks, 2147483647);
-      if(handler.level.liquidTicks instanceof LithiumServerTickScheduler)
-      {
-        ((LithiumServerTickSchedulerAccessor<?>)handler.level.liquidTicks).getExecutingTicks().clear();
-        ((LithiumServerTickSchedulerAccessor<?>)handler.level.liquidTicks).getExecutingTicksSet().clear();
-      }
-      else
-      {
-        handler.level.liquidTicks.alreadyTicked.clear();
-        handler.level.liquidTicks.currentlyTicking.clear();
-      }
-      stepping = TickPhase.UNKNOWN;
-      clearBlockHighlights(handler.level);
-    }
-  }
 
-  private void finishStepBlockEvents()
-  {
-    if(stepping == TickPhase.BLOCK_EVENT)
-    {
-      stepping = TickPhase.UNKNOWN;
-      clearBlockHighlights(handler.level);
+      handler.level.liquidTicks.alreadyTicked.clear();
+      handler.level.liquidTicks.currentlyTicking.clear();
     }
+
+    ServerNetworkHandler.clearBlockHighlights(handler.level);
+    handler.advancePhase();
   }
 
   private void finishStepEntities()
   {
-    if(stepping == TickPhase.ENTITY)
-    {
-      range = -1;
-      stepEntities(2147483647);
-      handler.level.entityTickList.iterated = null;
-      stepping = TickPhase.UNKNOWN;
-      handler.advancePhase();
-      clearEntityHighlights(handler.level);
-    }
+    stepEntities(2147483647);
+    handler.level.entityTickList.iterated = null;
+
+    ServerNetworkHandler.clearEntityHighlights(handler.level);
+    handler.advancePhase();
   }
 
   private void finishStepBlockEntities()
   {
-    if(stepping == TickPhase.BLOCK_ENTITY)
-    {
-      range = -1;
-      stepBlockEntities(2147483647);
-      handler.level.tickingBlockEntities = false;
-      stepping = TickPhase.UNKNOWN;
-      handler.advancePhase();
-      clearBlockHighlights(handler.level);
-    }
+    stepBlockEntities(2147483647);
+    handler.level.tickingBlockEntities = false;
+
+    ServerNetworkHandler.clearBlockHighlights(handler.level);
+    handler.advancePhase();
   }
 
-  private static void sendBlockHighlights(List<AABB> aabbs, ServerLevel level)
-  {
-    if(CarpetSettings.superSecretSetting || aabbs.isEmpty()) return;
-
-    CompoundTag tag = new CompoundTag();
-    ListTag list = new ListTag();
-    for(AABB aabb : aabbs)
-    {
-      CompoundTag nbt = new CompoundTag();
-      nbt.putDouble("x", aabb.minX);
-      nbt.putDouble("y", aabb.minY);
-      nbt.putDouble("z", aabb.minZ);
-      nbt.putDouble("X", aabb.maxX);
-      nbt.putDouble("Y", aabb.maxY);
-      nbt.putDouble("Z", aabb.maxZ);
-      nbt.putDouble("color", Settings.subtickHighlightColor);
-      list.add(nbt);
-    }
-    tag.put("BlockHighlighting", list);
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-      TickHandler.sendNbt(player, tag);
-    }
-  }
-
-  private static void sendEntityHighlights(List<Integer> ids, ServerLevel level)
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    CompoundTag tag = new CompoundTag();
-    tag.put("EntityHighlighting", new IntArrayTag(ids));
-
-    // System.out.println("SENDING PACKET: " + tag.toString());
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-      TickHandler.sendNbt(player, tag);
-    }
-  }
-
-  private static void clearBlockHighlights(ServerLevel level)
-  {
-    CompoundTag tag = new CompoundTag();
-    tag.put("BlockHighlighting", new ListTag());
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-      TickHandler.sendNbt(player, tag);
-    }
-  }
-
-  private static void clearEntityHighlights(ServerLevel level)
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    CompoundTag tag = new CompoundTag();
-    CompoundTag nbt = new CompoundTag();
-    nbt.putInt("color", 0);
-    nbt.put("ids", new IntArrayTag(new int[]{}));
-    tag.put("EntityHighlighting", nbt);
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
-    {
-      if(player.level != level) continue;
-      TickHandler.sendNbt(player, tag);
-    }
-  }
-
-  private boolean isExhausted()
+  public boolean isExhausted()
   {
     if(stepping == TickPhase.UNKNOWN) return false;
 
@@ -517,7 +417,8 @@ public class Queues
 
     if(handler.current_phase.isPosteriorTo(queue))
     {
-      Messenger.m(c.getSource(), d(handler.level), t(" cannot queueStep because "), p(queue), t(" phase already happened"));
+
+      Messenger.m(c.getSource(), d(handler.level), err(" cannot queueStep because "), p(queue), err(" phase already happened"));
       return false;
     }
     if(handler.current_phase.isPriorTo(queue))
@@ -525,7 +426,7 @@ public class Queues
 
     if(isExhausted())
     {
-      Messenger.m(c.getSource(), d(handler.level), t(" exhausted "), p(queue), t(" queue"));
+      Messenger.m(c.getSource(), d(handler.level), err(" exhausted "), p(queue), err(" queue"));
       return false;
     }
 

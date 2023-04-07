@@ -25,6 +25,7 @@ import static subtick.SubTick.t;
 import static subtick.SubTick.n;
 import static subtick.SubTick.p;
 import static subtick.SubTick.d;
+import static subtick.SubTick.err;
 
 public class TickCommand
 {
@@ -54,7 +55,7 @@ public class TickCommand
           .executes((c) -> when(c))
         )
         .then(literal("deep")
-          .executes((c) -> {Messenger.m(c.getSource(), t("This feature doesn't do anything because SubTick is installed.")); return 1;})
+          .executes((c) -> {Messenger.m(c.getSource(), err("This feature doesn't do anything because SubTick is installed.")); return 1;})
         )
         .executes((c) -> toggleFreeze(c, TickPhase.byCommandKey(Settings.subtickDefaultPhase)))
       )
@@ -83,7 +84,7 @@ public class TickCommand
     TickHandler handler = SubTick.getTickHandler(c);
     if(handler.frozen || handler.freezing)
     {
-      Messenger.m(c.getSource(), d(handler.level), t(" is already frozen"));
+      Messenger.m(c.getSource(), d(handler.level), err(" is already frozen"));
     }
     else
     {
@@ -101,10 +102,7 @@ public class TickCommand
       Messenger.m(c.getSource(), d(handler.level), t(" unfreezing"));
       handler.unfreeze();
     }
-    else
-    {
-      Messenger.m(c.getSource(), d(handler.level), t(" is not unfrozen"));
-    }
+    Messenger.m(c.getSource(), d(handler.level), err(" is not unfrozen"));
     return Command.SINGLE_SUCCESS;
   }
 
