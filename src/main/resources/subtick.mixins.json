@@ -9,13 +9,14 @@
     "LevelMixin",
 
     "carpet.ServerNetworkHandlerAccessor",
-    "carpet.ClientNetworkHandlerMixin",
     "carpet.ServerNetworkHandlerMixin",
     "carpet.TickCommandMixin",
 
     "lithium.LithiumServerTickSchedulerAccessor"
   ],
   "client": [
+    "carpet.ClientNetworkHandlerMixin",
+
     "EntityMixin",
     "LevelRendererMixin"
   ],

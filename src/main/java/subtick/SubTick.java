@@ -2,10 +2,13 @@ package subtick;
 
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
+import carpet.utils.Messenger;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.BaseComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import subtick.commands.TickCommand;
 import subtick.interfaces.ILevel;
@@ -67,9 +70,12 @@ public class SubTick implements CarpetExtension, ModInitializer
     return Settings.subtickPhaseFormat + " " + phase.getName(count);
   }
 
-  public static String d(Level level)
+  public static BaseComponent d(Level level)
   {
-    return Settings.subtickDimensionFormat + " " + level.dimension().location().toString();
+    ResourceLocation location = level.dimension().location();
+    return Messenger.c(
+      Settings.subtickDimensionFormat + " " + location.getPath().substring(0, 1).toUpperCase() + location.getPath().substring(1),
+      "^" + Settings.subtickDimensionFormat + " " + location.toString());
   }
 
   public static String err(String str)

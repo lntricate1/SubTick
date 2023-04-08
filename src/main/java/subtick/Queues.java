@@ -251,9 +251,8 @@ public class Queues
         }
 
         handler.level.guardEntityTick(handler.level::tickNonPassenger, entity);
-
       }
-      if(range == -1 || squaredDistance(entity.getOnPos(), pos) <= range)
+      if(range == -1 || squaredDistance(entity.blockPosition(), pos) <= range)
       {
         entity_highlights.add(entity.getId());
         executed_steps ++;
@@ -318,6 +317,9 @@ public class Queues
         break;
       case FLUID_TICK:
         finishStepFluidTicks();
+        break;
+      case BLOCK_EVENT:
+        ServerNetworkHandler.clearBlockHighlights(handler.level);
         break;
       case ENTITY:
         finishStepEntities();
