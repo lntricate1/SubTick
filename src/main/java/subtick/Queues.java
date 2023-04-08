@@ -13,7 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 
-// tile tick step
+// scheduled tick step
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
 import subtick.network.ServerNetworkHandler;
 import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
@@ -51,7 +51,7 @@ public class Queues
   private ArrayList<Integer> entity_highlights = new ArrayList<>();
 
   // Queues
-  private int lithium_tile_tick_step_index = 0;
+  private int lithium_scheduled_tick_step_index = 0;
   private Iterator<Entity> entity_iterator = null;
   private Iterator<TickingBlockEntity> block_entity_iterator = null;
 
@@ -137,14 +137,14 @@ public class Queues
     if(stepping == TickPhase.UNKNOWN)
     {
       scheduler.selectTicks(handler.time);
-      lithium_tile_tick_step_index = 0;
+      lithium_scheduled_tick_step_index = 0;
     }
 
     ArrayList<TickEntry<T>> ticks = ((LithiumServerTickSchedulerAccessor<T>)scheduler).getExecutingTicks();
     int ticksSize = ticks.size();
-    for(; lithium_tile_tick_step_index < ticksSize && executed_steps < count; lithium_tile_tick_step_index++)
+    for(; lithium_scheduled_tick_step_index < ticksSize && executed_steps < count; lithium_scheduled_tick_step_index++)
     {
-      TickEntry<T> tick = ticks.get(lithium_tile_tick_step_index);
+      TickEntry<T> tick = ticks.get(lithium_scheduled_tick_step_index);
       if(tick == null)
         continue;
       tick.consumed = true;
@@ -155,7 +155,7 @@ public class Queues
         executed_steps ++;
       }
     }
-    exhausted = lithium_tile_tick_step_index == ticksSize;
+    exhausted = lithium_scheduled_tick_step_index == ticksSize;
   }
 
   public <T> void stepScheduledTicks(ServerTickList<T> tickList, int count)
@@ -313,7 +313,7 @@ public class Queues
     switch(stepping)
     {
       case BLOCK_TICK:
-        finishStepTileTicks();
+        finishStepBlockTicks();
         break;
       case FLUID_TICK:
         finishStepFluidTicks();
@@ -335,7 +335,7 @@ public class Queues
     stepping = TickPhase.UNKNOWN;
   }
 
-  private void finishStepTileTicks()
+  private void finishStepBlockTicks()
   {
     if(handler.level.blockTicks instanceof LithiumServerTickScheduler)
     {
