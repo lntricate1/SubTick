@@ -52,5 +52,5 @@ public class Settings
     desc = "Default range for queueStep",
     category = "subtick"
   )
-  public static int subtickDefaultRange = 64;
+  public static int subtickDefaultRange = 32;
 }

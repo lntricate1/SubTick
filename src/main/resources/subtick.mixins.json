@@ -3,7 +3,8 @@
   "minVersion": "0.8",
   "package": "subtick.mixins",
   "compatibilityLevel": "JAVA_8",
-  "mixins": [
+  "mixins": [],
+  "server": [
     "ServerLevelMixin",
     "ServerPlayerMixin",
     "LevelMixin",

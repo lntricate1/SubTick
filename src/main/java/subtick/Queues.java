@@ -44,7 +44,7 @@ public class Queues
   public TickPhase scheduled = TickPhase.UNKNOWN;
   private int scheduled_count = 0;
   private boolean exhausted;
-  private BlockPos pos = new BlockPos(0, 0, 0);
+  public BlockPos pos = new BlockPos(0, 0, 0);
   private int range = -1;
   private int executed_steps = 0;
   private ArrayList<AABB> block_highlights = new ArrayList<>();
@@ -112,11 +112,11 @@ public class Queues
     scheduled = TickPhase.UNKNOWN;
   }
 
-  private static int squaredDistance(BlockPos a, BlockPos b)
+  private static long squaredDistance(BlockPos a, BlockPos b)
   {
-    int x = a.getX() - b.getX();
-    int y = a.getY() - b.getY();
-    int z = a.getZ() - b.getZ();
+    long x = a.getX() - b.getX();
+    long y = a.getY() - b.getY();
+    long z = a.getZ() - b.getZ();
     return x*x + y*y + z*z;
   }
 
@@ -132,6 +132,8 @@ public class Queues
     }
   }
 
+  // Accessor cast warnings
+  @SuppressWarnings("unchecked")
   public <T> void stepScheduledTicksLithium(LithiumServerTickScheduler<T> scheduler, int count)
   {
     if(stepping == TickPhase.UNKNOWN)
@@ -309,7 +311,7 @@ public class Queues
     if(stepping == TickPhase.UNKNOWN)
       return;
 
-    range = -1;
+    range = -2;
     switch(stepping)
     {
       case BLOCK_TICK:

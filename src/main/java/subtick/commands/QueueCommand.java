@@ -29,7 +29,7 @@ public class QueueCommand
       .then(argument("phase", word())
         .suggests((c, b) -> suggest(new String[]{"blockTick", "fluidTick", "blockEvent", "entity", "blockEntity"}, b))
         .then(argument("count", integer(1))
-          .then(argument("range", integer(1))
+          .then(argument("range", integer(-1, 46340))
             .then(literal("force")
               .executes((c) -> step(c, TickPhase.byCommandKey(getString(c, "phase")), getInteger(c, "count"), getInteger(c, "range"), true))
             )
@@ -55,7 +55,9 @@ public class QueueCommand
     if(!force && !handler.queues.canStep(c, phase)) return 0;
 
     handler.queues.commandSource = c.getSource();
+    System.out.println(c.getSource().getPosition().toString());
     handler.queues.scheduleQueueStep(phase, count, new BlockPos(c.getSource().getPosition()), range);
+    System.out.println(handler.queues.pos.toString());
     return Command.SINGLE_SUCCESS;
   }
 }
