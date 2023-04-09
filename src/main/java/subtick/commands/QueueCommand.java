@@ -55,9 +55,7 @@ public class QueueCommand
     if(!force && !handler.queues.canStep(c, phase)) return 0;
 
     handler.queues.commandSource = c.getSource();
-    System.out.println(c.getSource().getPosition().toString());
     handler.queues.scheduleQueueStep(phase, count, new BlockPos(c.getSource().getPosition()), range);
-    System.out.println(handler.queues.pos.toString());
     return Command.SINGLE_SUCCESS;
   }
 }
