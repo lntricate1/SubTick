@@ -24,7 +24,6 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 
 - `-` Allow the client to animate moving blocks 1 by 1, to show the movement when ticking BlockEntities.
 - `-` Fix some chunk unloading stuff with player movement while frozen.
-- `-` Fix 2 unchecked cast warnings caused by an accessor mixin.
 - `-` etc... (aka put it on cmp and have people report bugs)
 
 - `~~` Fix compat with multimeter.
