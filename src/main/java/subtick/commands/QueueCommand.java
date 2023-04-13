@@ -19,7 +19,6 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import subtick.Settings;
 import subtick.SubTick;
-import subtick.TickHandler;
 
 public class QueueCommand
 {
@@ -51,8 +50,7 @@ public class QueueCommand
 
   private static int step(CommandContext<CommandSourceStack> c, String commandKey, int count, int range, boolean force) throws CommandSyntaxException
   {
-    TickHandler handler = SubTick.getTickHandler(c);
-    handler.queues.schedule(c, commandKey, count, new BlockPos(c.getSource().getPosition()), range, force);
+    SubTick.getTickHandler(c).queues.schedule(c, commandKey, count, new BlockPos(c.getSource().getPosition()), range, force);
     return Command.SINGLE_SUCCESS;
   }
 }

@@ -5,6 +5,7 @@ import java.util.Iterator;
 
 import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
 import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ServerTickList;
@@ -26,7 +27,7 @@ public class BlockTickQueue extends AbstractQueue
   @Override
   public void start(ServerLevel level)
   {
-    if(level.blockTicks instanceof LithiumServerTickScheduler)
+    if(FabricLoader.getInstance().isModLoaded("lithium"))
       startLithium(level);
     else
       startVanilla(level);
