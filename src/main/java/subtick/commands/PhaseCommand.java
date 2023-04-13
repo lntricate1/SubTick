@@ -24,15 +24,15 @@ public class PhaseCommand
   {
     dispatcher.register(
       literal("phaseStep")
+      .then(argument("count", integer(1))
+        .executes((c) -> stepCount(c, getInteger(c, "count")))
+      )
       .then(argument("phase", word())
         .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
         .then(literal("force")
           .executes((c) -> stepToPhase(c, TickPhase.byCommandKey(getString(c, "phase")), true))
         )
         .executes((c) -> stepToPhase(c, TickPhase.byCommandKey(getString(c, "phase")), false))
-      )
-      .then(argument("count", integer(1))
-        .executes((c) -> stepCount(c, getInteger(c, "count")))
       )
       .executes((c) -> stepCount(c, 1))
     );
