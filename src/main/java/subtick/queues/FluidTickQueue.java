@@ -11,6 +11,7 @@ import net.minecraft.world.level.ServerTickList;
 import net.minecraft.world.level.TickNextTickData;
 import net.minecraft.world.level.material.Fluid;
 import oshi.util.tuples.Pair;
+import subtick.SubTick;
 import subtick.TickPhase;
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
 
@@ -26,7 +27,7 @@ public class FluidTickQueue extends AbstractQueue
   @Override
   public void start(ServerLevel level)
   {
-    if(level.liquidTicks instanceof LithiumServerTickScheduler)
+    if(SubTick.hasLithium)
       startLithium(level);
     else
       startVanilla(level);
@@ -35,7 +36,7 @@ public class FluidTickQueue extends AbstractQueue
   @Override
   public Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range)
   {
-    if(level.liquidTicks instanceof LithiumServerTickScheduler)
+    if(SubTick.hasLithium)
       return stepLithium(count, level, pos, range);
     return stepVanilla(count, level, pos, range);
   }
@@ -43,7 +44,7 @@ public class FluidTickQueue extends AbstractQueue
   @Override
   public void end(ServerLevel level)
   {
-    if(level.liquidTicks instanceof LithiumServerTickScheduler)
+    if(SubTick.hasLithium)
       endLithium(level);
     else
       endVanilla(level);

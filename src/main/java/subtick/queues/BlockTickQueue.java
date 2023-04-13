@@ -5,13 +5,13 @@ import java.util.Iterator;
 
 import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
 import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ServerTickList;
 import net.minecraft.world.level.TickNextTickData;
 import net.minecraft.world.level.block.Block;
 import oshi.util.tuples.Pair;
+import subtick.SubTick;
 import subtick.TickPhase;
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
 
@@ -27,7 +27,7 @@ public class BlockTickQueue extends AbstractQueue
   @Override
   public void start(ServerLevel level)
   {
-    if(FabricLoader.getInstance().isModLoaded("lithium"))
+    if(SubTick.hasLithium)
       startLithium(level);
     else
       startVanilla(level);
@@ -36,7 +36,7 @@ public class BlockTickQueue extends AbstractQueue
   @Override
   public Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range)
   {
-    if(level.blockTicks instanceof LithiumServerTickScheduler)
+    if(SubTick.hasLithium)
       return stepLithium(count, level, pos, range);
     return stepVanilla(count, level, pos, range);
   }
@@ -44,7 +44,7 @@ public class BlockTickQueue extends AbstractQueue
   @Override
   public void end(ServerLevel level)
   {
-    if(level.blockTicks instanceof LithiumServerTickScheduler)
+    if(SubTick.hasLithium)
       endLithium(level);
     else
       endVanilla(level);

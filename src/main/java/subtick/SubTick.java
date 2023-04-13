@@ -24,6 +24,8 @@ public class SubTick implements CarpetExtension, ModInitializer
   public static final String MOD_ID = "subtick";
   public static String MOD_NAME = "";
   public static String MOD_VERSION = "";
+  public static final boolean hasLithium = FabricLoader.getInstance().isModLoaded("lithium");
+
   @Override
   public void onInitialize()
   {
