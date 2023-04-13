@@ -8,43 +8,22 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
 import oshi.util.tuples.Pair;
-import subtick.TickPhase;
+import subtick.TickHandler;
+import subtick.TickingMode;
 import subtick.network.ServerNetworkHandler;
 
-public abstract class AbstractQueue
+public abstract class TickingQueue
 {
   private List<AABB> block_highlights = new ArrayList<>();
   private List<Integer> entity_highlights = new ArrayList<>();
-  private final TickPhase phase;
-  private final String commandKey, nameSingle, nameMultiple;
+  protected final ServerLevel level;
+  protected final TickHandler handler;
   public boolean exhausted;
 
-  public AbstractQueue(TickPhase phase, String commandKey, String nameSingle, String nameMultiple)
+  public TickingQueue(TickHandler handler)
   {
-    this.phase = phase;
-    this.commandKey = commandKey;
-    this.nameSingle = nameSingle;
-    this.nameMultiple = nameMultiple;
-  }
-
-  @Override
-  public String toString() {
-    return commandKey;
-  }
-
-  public TickPhase getPhase()
-  {
-    return phase;
-  }
-
-  public String getCommandKey()
-  {
-    return commandKey;
-  }
-
-  public String getName(int count)
-  {
-    return count == 1 ? nameSingle : nameMultiple;
+    this.level = handler.level;
+    this.handler = handler;
   }
 
   public static boolean rangeCheck(BlockPos a, BlockPos b, long range)
@@ -104,18 +83,19 @@ public abstract class AbstractQueue
     entity_highlights = new ArrayList<>();
   }
 
-  public void clearHighlights(ServerLevel level)
+  public void clearHighlights()
   {
     ServerNetworkHandler.clearBlockHighlights(level);
     ServerNetworkHandler.clearEntityHighlights(level);
   }
 
-  public boolean cantStep(ServerLevel level)
+  public boolean cantStep(TickingMode mode)
   {
     return exhausted;
   }
 
-  public abstract void start(ServerLevel level);
-  public abstract Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range);
-  public abstract void end(ServerLevel level);
+  public abstract void start(TickingMode mode);
+  public abstract Pair<Integer, Boolean> step(TickingMode mode, int count, BlockPos pos, int range);
+  public abstract void end(TickingMode mode);
+  public abstract String getName(TickingMode mode, int steps);
 }

@@ -2,28 +2,38 @@ package subtick.queues;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.BlockEventData;
 import oshi.util.tuples.Pair;
-import subtick.TickPhase;
+import subtick.TickHandler;
+import subtick.TickingMode;
 
-public class BlockEventQueue extends AbstractQueue
+public class BlockEventQueue extends TickingQueue
 {
-  public BlockEventQueue()
+  public static final TickingMode INDEX = new TickingMode("index", "Index");
+  public static final TickingMode DEPTH = new TickingMode("depth", "Depth");
+
+  public BlockEventQueue(TickHandler handler)
   {
-    super(TickPhase.BLOCK_EVENT, "blockEvent", "Block Event", "Block Events");
+    super(handler);
   }
 
   @Override
-  public void start(ServerLevel level)
+  public void start(TickingMode mode)
   {}
 
   @Override
-  public Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range)
+  public Pair<Integer, Boolean> step(TickingMode mode, int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
+    int batchSize = 0;
+    int batchIndex = 0;
     while(executed_steps < count && level.blockEvents.size() != 0)
     {
+      if (batchIndex++ == batchSize)
+      {
+        batchSize = level.blockEvents.size();
+        batchIndex = 1;
+      }
       BlockEventData blockEvent = level.blockEvents.removeFirst();
       if(level.doBlockEvent(blockEvent))
       {
@@ -32,7 +42,8 @@ public class BlockEventQueue extends AbstractQueue
         if(rangeCheck(blockEvent.getPos(), pos, range))
         {
           addBlockOutline(blockEvent.getPos(), level);
-          executed_steps ++;
+          if (mode == INDEX || batchIndex == batchSize)
+            executed_steps ++;
         }
       }
     }
@@ -40,12 +51,25 @@ public class BlockEventQueue extends AbstractQueue
   }
 
   @Override
-  public void end(ServerLevel level)
+  public void end(TickingMode mode)
   {}
 
   @Override
-  public boolean cantStep(ServerLevel level)
+  public boolean cantStep(TickingMode mode)
   {
     return level.blockEvents.size() == 0;
+  }
+
+  @Override
+  public String getName(TickingMode mode, int steps)
+  {
+    if (mode == INDEX)
+    {
+      return steps == 1 ? "block event" : "block events";
+    }
+    else
+    {
+      return steps == 1 ? "block event batch" : "block event batches";
+    }
   }
 }

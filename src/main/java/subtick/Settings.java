@@ -31,6 +31,18 @@ public class Settings
   public static String subtickPhaseFormat = "it";
 
   @Rule(
+    desc = "Text format for ticking modes in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+    category = "subtick"
+    )
+  public static String subtickModeFormat = "it";
+
+  @Rule(
+    desc = "Text format for queue steps in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+    category = "subtick"
+    )
+  public static String subtickStepFormat = "it";
+
+  @Rule(
     desc = "Text format for dimensions in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
     category = "subtick"
   )

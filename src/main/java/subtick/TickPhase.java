@@ -3,10 +3,17 @@ package subtick;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+
+import subtick.queues.TickingQueue;
+import subtick.queues.BlockEntityQueue;
+import subtick.queues.BlockEventQueue;
+import subtick.queues.EntityQueue;
+import subtick.queues.ScheduledTickQueue;
 
 public enum TickPhase
 {
@@ -14,13 +21,13 @@ public enum TickPhase
   WORLD_BORDER     ("worldBorder"     , "World Border"),
   WEATHER          ("weather"         , "Weather"),
   TIME             ("time"            , "Time"),
-  BLOCK_TICK       ("blockTick"       , "Block Tick"),
-  FLUID_TICK       ("fluidTick"       , "Fluid Tick"),
+  BLOCK_TICK       ("blockTick"       , "Block Tick"       , ScheduledTickQueue::block),
+  FLUID_TICK       ("fluidTick"       , "Fluid Tick"       , ScheduledTickQueue::fluid),
   RAID             ("raid"            , "Raid"),
   CHUNK            ("chunk"           , "Chunk"),
-  BLOCK_EVENT      ("blockEvent"      , "Block Event"),
-  ENTITY           ("entity"          , "Entity"),
-  BLOCK_ENTITY     ("blockEntity"     , "Block Entity"),
+  BLOCK_EVENT      ("blockEvent"      , "Block Event"      , BlockEventQueue::new, BlockEventQueue.INDEX, BlockEventQueue.DEPTH),
+  ENTITY           ("entity"          , "Entity"           , EntityQueue::new),
+  BLOCK_ENTITY     ("blockEntity"     , "Block Entity"     , BlockEntityQueue::new),
   ENTITY_MANAGEMENT("entityManagement", "Entity Management");
 
   private static final TickPhase[] BY_ID;
@@ -50,13 +57,48 @@ public enum TickPhase
 
   private final String commandKey;
   private final String name;
+  private final Function<TickHandler, TickingQueue> queueFactory;
+  private final TickingMode defaultMode;
+  private final Map<String, TickingMode> modesByCommandKey;
 
   private int id = -1;
 
   private TickPhase(String commandKey, String name)
   {
+    this(commandKey, name, null, new TickingMode[0]);
+  }
+
+  private TickPhase(String commandKey, String name, Function<TickHandler, TickingQueue> queueFactory)
+  {
+    this(commandKey, name, queueFactory, TickingMode.DEFAULT);
+  }
+
+  private TickPhase(String commandKey, String name, Function<TickHandler, TickingQueue> queueFactory, TickingMode... modes)
+  {
+    if (queueFactory == null)
+    {
+      if (modes.length > 0)
+        throw new IllegalArgumentException("tick phase has ticking modes but no ticking queue!");
+    }
+    else
+    {
+      if (modes.length == 0)
+        throw new IllegalArgumentException("tick phase has a ticking queue but no ticking modes!");
+      for (TickingMode mode : modes)
+        if (mode == null)
+          throw new IllegalArgumentException("null is not a valid ticking mode!");
+    }
     this.commandKey = commandKey;
     this.name = name;
+    this.queueFactory = queueFactory;
+    this.defaultMode = (modes.length > 0) ? modes[0] : null;
+    this.modesByCommandKey = new HashMap<>();
+    for (TickingMode mode : modes)
+    {
+      if (this.modesByCommandKey.containsKey(mode.getCommandKey()))
+        throw new IllegalArgumentException(mode.getCommandKey() + " is not a unique ticking mode for tick phase " + this);
+      this.modesByCommandKey.put(mode.getCommandKey(), mode);
+    }
   }
 
   @Override
@@ -77,6 +119,11 @@ public enum TickPhase
   public String getName()
   {
     return name;
+  }
+
+  public TickingQueue newQueue(TickHandler handler)
+  {
+    return queueFactory == null ? null : queueFactory.apply(handler);
   }
 
   public boolean exists()
@@ -125,5 +172,20 @@ public enum TickPhase
   public static Collection<String> getCommandKeys()
   {
     return BY_COMMAND_KEY.keySet();
+  }
+
+  public TickingMode getDefaultMode()
+  {
+    return defaultMode;
+  }
+
+  public TickingMode getMode(String key) throws CommandSyntaxException
+  {
+    return modesByCommandKey.get(key);
+  }
+
+  public Collection<String> getModeCommandKeys()
+  {
+    return modesByCommandKey.keySet();
   }
 }

@@ -6,57 +6,72 @@ import java.util.Iterator;
 import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
 import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ServerTickList;
 import net.minecraft.world.level.TickNextTickData;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
 import oshi.util.tuples.Pair;
 import subtick.SubTick;
-import subtick.TickPhase;
+import subtick.TickHandler;
+import subtick.TickingMode;
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
 
-public class FluidTickQueue extends AbstractQueue
+public class ScheduledTickQueue<T> extends TickingQueue
 {
+  public static ScheduledTickQueue<Block> block(TickHandler handler)
+  {
+    return new ScheduledTickQueue<>(handler, handler.level.blockTicks, "block");
+  }
+
+  public static ScheduledTickQueue<Fluid> fluid(TickHandler handler)
+  {
+    return new ScheduledTickQueue<>(handler, handler.level.liquidTicks, "fluid");
+  }
+
+  private final ServerTickList<T> tickList;
+  private final String typeName;
+
   private int lithium_scheduled_tick_step_index = 0;
 
-  public FluidTickQueue()
+  public ScheduledTickQueue(TickHandler handler, ServerTickList<T> tickList, String typeName)
   {
-    super(TickPhase.FLUID_TICK, "fluidTick", "Fluid Tick", "Fluid Ticks");
+    super(handler);
+    this.tickList = tickList;
+    this.typeName = typeName;
   }
 
   @Override
-  public void start(ServerLevel level)
+  public void start(TickingMode mode)
   {
     if(SubTick.hasLithium)
-      startLithium(level);
+      startLithium();
     else
-      startVanilla(level);
+      startVanilla();
   }
 
   @Override
-  public Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range)
+  public Pair<Integer, Boolean> step(TickingMode mode, int count, BlockPos pos, int range)
   {
     if(SubTick.hasLithium)
-      return stepLithium(count, level, pos, range);
-    return stepVanilla(count, level, pos, range);
+      return stepLithium(count, pos, range);
+    return stepVanilla(count, pos, range);
   }
 
   @Override
-  public void end(ServerLevel level)
+  public void end(TickingMode mode)
   {
     if(SubTick.hasLithium)
-      endLithium(level);
+      endLithium();
     else
-      endVanilla(level);
+      endVanilla();
   }
 
-  private void startVanilla(ServerLevel level)
+  private void startVanilla()
   {
-    ServerTickList<Fluid> tickList = level.liquidTicks;
-    Iterator<TickNextTickData<Fluid>> iterator = tickList.tickNextTickList.iterator();
+    Iterator<TickNextTickData<T>> iterator = tickList.tickNextTickList.iterator();
     for(int i = 0; i < 65536 && iterator.hasNext();)
     {
-      TickNextTickData<Fluid> tick = iterator.next();
+      TickNextTickData<T> tick = iterator.next();
       if(tick.triggerTick > level.getGameTime())
         break;
       if(level.isPositionTickingWithEntitiesLoaded(tick.pos))
@@ -69,19 +84,18 @@ public class FluidTickQueue extends AbstractQueue
     }
   }
 
-  private void startLithium(ServerLevel level)
+  private void startLithium()
   {
-    ((LithiumServerTickScheduler<Fluid>)level.liquidTicks).selectTicks(level.getGameTime());
+    ((LithiumServerTickScheduler<T>)tickList).selectTicks(level.getGameTime());
     lithium_scheduled_tick_step_index = 0;
   }
 
-  public Pair<Integer, Boolean> stepVanilla(int count, ServerLevel level, BlockPos pos, int range)
+  public Pair<Integer, Boolean> stepVanilla(int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
-    ServerTickList<Fluid> tickList = level.liquidTicks;
     while(executed_steps < count)
     {
-      TickNextTickData<Fluid> tick = tickList.currentlyTicking.poll();
+      TickNextTickData<T> tick = tickList.currentlyTicking.poll();
       if(tick == null)
       {
         exhausted = true;
@@ -108,15 +122,15 @@ public class FluidTickQueue extends AbstractQueue
 
   // Accessor cast warnings
   @SuppressWarnings("unchecked")
-  private Pair<Integer, Boolean> stepLithium(int count, ServerLevel level, BlockPos pos, int range)
+  private Pair<Integer, Boolean> stepLithium(int count, BlockPos pos, int range)
   {
-    LithiumServerTickSchedulerAccessor<Fluid> scheduler = (LithiumServerTickSchedulerAccessor<Fluid>)(LithiumServerTickScheduler<Fluid>)level.liquidTicks;
+    LithiumServerTickSchedulerAccessor<T> scheduler = (LithiumServerTickSchedulerAccessor<T>)(LithiumServerTickScheduler<T>)tickList;
     int executed_steps = 0;
-    ArrayList<TickEntry<Fluid>> ticks = scheduler.getExecutingTicks();
+    ArrayList<TickEntry<T>> ticks = scheduler.getExecutingTicks();
     int ticksSize = ticks.size();
     for(; lithium_scheduled_tick_step_index < ticksSize && executed_steps < count; lithium_scheduled_tick_step_index++)
     {
-      TickEntry<Fluid> tick = ticks.get(lithium_scheduled_tick_step_index);
+      TickEntry<T> tick = ticks.get(lithium_scheduled_tick_step_index);
       if(tick == null)
         continue;
       tick.consumed = true;
@@ -130,19 +144,25 @@ public class FluidTickQueue extends AbstractQueue
     return new Pair<Integer, Boolean>(executed_steps, exhausted = lithium_scheduled_tick_step_index == ticksSize);
   }
 
-  private void endVanilla(ServerLevel level)
+  private void endVanilla()
   {
-    stepVanilla(1, level, BlockPos.ZERO, -2);
-    level.liquidTicks.alreadyTicked.clear();
-    level.liquidTicks.currentlyTicking.clear();
+    stepVanilla(1, BlockPos.ZERO, -2);
+    tickList.alreadyTicked.clear();
+    tickList.currentlyTicking.clear();
   }
 
   // Accessor cast warnings
   @SuppressWarnings("unchecked")
-  private void endLithium(ServerLevel level)
+  private void endLithium()
   {
-    stepLithium(1, level, BlockPos.ZERO, -2);
-    ((LithiumServerTickSchedulerAccessor<Fluid>)level.liquidTicks).getExecutingTicks().clear();
-    ((LithiumServerTickSchedulerAccessor<Fluid>)level.liquidTicks).getExecutingTicksSet().clear();
+    stepLithium(1, BlockPos.ZERO, -2);
+    ((LithiumServerTickSchedulerAccessor<T>)tickList).getExecutingTicks().clear();
+    ((LithiumServerTickSchedulerAccessor<T>)tickList).getExecutingTicksSet().clear();
+  }
+
+  @Override
+  public String getName(TickingMode mode, int steps)
+  {
+    return typeName + (steps == 1 ? " tick" : " ticks");
   }
 }

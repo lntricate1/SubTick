@@ -3,29 +3,29 @@ package subtick.queues;
 import java.util.Iterator;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import oshi.util.tuples.Pair;
-import subtick.TickPhase;
+import subtick.TickHandler;
+import subtick.TickingMode;
 
-public class EntityQueue extends AbstractQueue
+public class EntityQueue extends TickingQueue
 {
   private Iterator<Entity> entity_iterator;
 
-  public EntityQueue()
+  public EntityQueue(TickHandler handler)
   {
-    super(TickPhase.ENTITY, "entity", "Entity", "Entities");
+    super(handler);
   }
 
   @Override
-  public void start(ServerLevel level)
+  public void start(TickingMode mode)
   {
     level.entityTickList.iterated = level.entityTickList.active;
     entity_iterator = level.entityTickList.active.values().iterator();
   }
 
   @Override
-  public Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range)
+  public Pair<Integer, Boolean> step(TickingMode mode, int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
     while(executed_steps < count && entity_iterator.hasNext())
@@ -59,8 +59,14 @@ public class EntityQueue extends AbstractQueue
   }
 
   @Override
-  public void end(ServerLevel level)
+  public void end(TickingMode mode)
   {
     level.entityTickList.iterated = null;
+  }
+
+  @Override
+  public String getName(TickingMode mode, int steps)
+  {
+    return steps == 1 ? "entity" : "entities";
   }
 }
