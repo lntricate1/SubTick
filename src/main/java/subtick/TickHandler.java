@@ -14,7 +14,7 @@ import subtick.network.ServerNetworkHandler;
 public class TickHandler
 {
   public final ServerLevel level;
-  public final Queues queues = new Queues(this);
+  public final Queues queues;
   public long time;
 
   // Freeze
@@ -32,6 +32,7 @@ public class TickHandler
   {
     this.level = level;
     this.time = level.getGameTime();
+    queues = new Queues(this);
   }
 
   public void tickTime()
@@ -81,7 +82,7 @@ public class TickHandler
     if(remaining_ticks < 1 && phase == target_phase)
     {
       stepping = false;
-      queues.executeScheduledSteps();
+      queues.execute();
       return false;
     }
     advancePhase();
@@ -100,7 +101,7 @@ public class TickHandler
     remaining_ticks = ticks;
     target_phase = phase;
     if(ticks != 0 || phase != current_phase)
-      queues.finishQueueStep();
+      queues.end();
   }
 
   public void freeze(TickPhase phase)
@@ -116,7 +117,7 @@ public class TickHandler
     {
       unfreezing = true;
       stepping = false;
-      queues.finishQueueStep();
+      queues.end();
     }
   }
 
@@ -140,11 +141,28 @@ public class TickHandler
       return false;
     }
 
-    if(queues.scheduled != TickPhase.UNKNOWN)
+    if(queues.scheduled)
     {
       Messenger.m(c.getSource(), d(level), err(" cannot step because it's already queueStepping"));
       return false;
     }
+
+    return true;
+  }
+
+  public boolean canStep(int count, TickPhase phase)
+  {
+    if(!frozen)
+      return false;
+
+    if(stepping)
+      return false;
+
+    if(count == 0 && phase.isPriorTo(current_phase))
+      return false;
+
+    if(queues.scheduled)
+      return false;
 
     return true;
   }

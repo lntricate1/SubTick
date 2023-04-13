@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import subtick.commands.TickCommand;
 import subtick.interfaces.ILevel;
+import subtick.queues.AbstractQueue;
 import subtick.commands.PhaseCommand;
 import subtick.commands.QueueCommand;
 
@@ -65,9 +66,9 @@ public class SubTick implements CarpetExtension, ModInitializer
     return Settings.subtickPhaseFormat + " " + phase.getName();
   }
 
-  public static String p(TickPhase phase, int count)
+  public static String p(AbstractQueue queue, int count)
   {
-    return Settings.subtickPhaseFormat + " " + phase.getName(count);
+    return Settings.subtickPhaseFormat + " " + queue.getName(count);
   }
 
   public static BaseComponent d(Level level)

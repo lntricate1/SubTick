@@ -42,7 +42,7 @@ public class PhaseCommand
   {
     TickHandler handler = SubTick.getTickHandler(c);
     TickPhase phase = handler.current_phase.next(count);
-    int ticks = count / TickPhase.getCommandKeys().size();
+    int ticks = (count + handler.current_phase.getId()) / TickPhase.getCommandKeys().size();
     return TickCommand.step(c, ticks, phase);
   }
 

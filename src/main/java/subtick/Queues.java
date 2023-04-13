@@ -1,33 +1,25 @@
 package subtick;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.mojang.brigadier.LiteralMessage;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
 import carpet.utils.Messenger;
-import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
-
-// highlights
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.phys.AABB;
-
-// scheduled tick step
-import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
-import subtick.network.ServerNetworkHandler;
-import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
-import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
-import net.minecraft.world.level.ServerTickList;
-import net.minecraft.world.level.TickNextTickData;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.material.Fluid;
-// block event step
-import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
-import net.minecraft.world.level.BlockEventData;
-import net.minecraft.world.level.block.entity.TickingBlockEntity;
-// entity step
-import net.minecraft.world.entity.Entity;
+import net.minecraft.server.level.ServerLevel;
+import oshi.util.tuples.Pair;
+import subtick.queues.AbstractQueue;
+import subtick.queues.BlockEntityQueue;
+import subtick.queues.BlockEventDepthQueue;
+import subtick.queues.BlockEventQueue;
+import subtick.queues.BlockTickQueue;
+import subtick.queues.EntityQueue;
+import subtick.queues.FluidTickQueue;
 
 import static subtick.SubTick.t;
 import static subtick.SubTick.n;
@@ -37,402 +29,135 @@ import static subtick.SubTick.err;
 
 public class Queues
 {
+  public static final DynamicCommandExceptionType INVALID_QUEUE_EXCEPTION = new DynamicCommandExceptionType(key -> new LiteralMessage("Invalid queue '" + key + "'"));
+  private final Map<String, AbstractQueue> BY_COMMAND_KEY = new HashMap<>();
   private final TickHandler handler;
-  public CommandSourceStack commandSource;
+  private final ServerLevel level;
 
-  public TickPhase stepping = TickPhase.UNKNOWN;
-  public TickPhase scheduled = TickPhase.UNKNOWN;
-  private int scheduled_count = 0;
-  private boolean exhausted;
-  public BlockPos pos = new BlockPos(0, 0, 0);
-  private int range = -1;
-  private int executed_steps = 0;
-  private ArrayList<AABB> block_highlights = new ArrayList<>();
-  private ArrayList<Integer> entity_highlights = new ArrayList<>();
+  private AbstractQueue queue;
+  private int count;
+  private BlockPos pos;
+  private int range;
+  private CommandSourceStack actor;
 
-  // Queues
-  private int lithium_scheduled_tick_step_index = 0;
-  private Iterator<Entity> entity_iterator = null;
-  private Iterator<TickingBlockEntity> block_entity_iterator = null;
+  public boolean scheduled;
+  private boolean stepping;
 
   public Queues(TickHandler handler)
   {
     this.handler = handler;
+    this.level = handler.level;
+    // This thing should really be improved
+    BY_COMMAND_KEY.put("blockTick", new BlockTickQueue());
+    BY_COMMAND_KEY.put("fluidTick", new FluidTickQueue());
+    BY_COMMAND_KEY.put("blockEvent", new BlockEventQueue());
+    BY_COMMAND_KEY.put("blockEventDepth", new BlockEventDepthQueue());
+    BY_COMMAND_KEY.put("entity", new EntityQueue());
+    BY_COMMAND_KEY.put("blockEntity", new BlockEntityQueue());
   }
 
-  public void scheduleQueueStep(TickPhase phase, int count, BlockPos pos, int range)
+  public AbstractQueue byCommandKey(String commandKey) throws CommandSyntaxException
   {
-    if(phase.isPriorTo(handler.current_phase) || isExhausted())
-      handler.step(1, phase);
+    AbstractQueue queue = BY_COMMAND_KEY.get(commandKey);
+    if(queue == null)
+      throw INVALID_QUEUE_EXCEPTION.create(commandKey);
+    return queue;
+  }
+
+  public void schedule(CommandContext<CommandSourceStack> c, String commandKey, int count, BlockPos pos, int range, boolean force)
+  {
+    if(queue == null)
+      queue = BY_COMMAND_KEY.get(commandKey);
+
+    if(canStep(queue))
+      handler.step(0, queue.getPhase());
     else
-      handler.step(0, phase);
-    scheduled = phase;
-    scheduled_count = count;
+    {
+      if(force)
+      {
+        if(!handler.canStep(c, 1, queue.getPhase()))
+          return;
+        handler.step(1, queue.getPhase());
+        queue = BY_COMMAND_KEY.get(commandKey);
+      }
+      else
+      {
+        canStep(c, queue);
+        return;
+      }
+    }
+
+    this.actor = c.getSource();
+    this.count = count;
     this.pos = pos;
-    this.range = range == -1 ? -1 : range*range;
+    this.range = range;
+    scheduled = true;
   }
 
-  public void executeScheduledSteps()
+  public void execute()
   {
-    if(scheduled == TickPhase.UNKNOWN) return;
+    if(!scheduled) return;
 
-    switch(scheduled)
+    if(!stepping)
     {
-      case BLOCK_TICK:
-        if(handler.level.blockTicks instanceof LithiumServerTickScheduler)
-          stepScheduledTicksLithium((LithiumServerTickScheduler<Block>)handler.level.blockTicks, scheduled_count);
-        else
-          stepScheduledTicks(handler.level.blockTicks, scheduled_count);
-        break;
-      case FLUID_TICK:
-        if(handler.level.liquidTicks instanceof LithiumServerTickScheduler)
-          stepScheduledTicksLithium((LithiumServerTickScheduler<Fluid>)handler.level.liquidTicks, scheduled_count);
-        else
-          stepScheduledTicks(handler.level.liquidTicks, scheduled_count);
-        break;
-      case BLOCK_EVENT:
-        stepBlockEvents(scheduled_count);
-        break;
-      case ENTITY:
-        stepEntities(scheduled_count);
-        break;
-      case BLOCK_ENTITY:
-        stepBlockEntities(scheduled_count);
-        break;
+      queue.start(level);
+      stepping = true;
     }
-    stepping = scheduled;
-    if(block_highlights.size() > 0)
-      ServerNetworkHandler.sendBlockHighlights(block_highlights, handler.level, commandSource);
-    if(entity_highlights.size() > 0)
-      ServerNetworkHandler.sendEntityHighlights(entity_highlights, handler.level, commandSource);
-    block_highlights = new ArrayList<>();
-    entity_highlights = new ArrayList<>();
 
-    sendFeedback();
-    scheduled = TickPhase.UNKNOWN;
+    Pair<Integer, Boolean> pair = queue.step(count, level, pos, range);
+
+    queue.sendHighlights(level, actor);
+    queue.emptyHighlights();
+    sendFeedback(pair.getA(), pair.getB());
+
+    scheduled = false;
   }
 
-  private static long squaredDistance(BlockPos a, BlockPos b)
+  public void end()
   {
-    long x = a.getX() - b.getX();
-    long y = a.getY() - b.getY();
-    long z = a.getZ() - b.getZ();
-    return x*x + y*y + z*z;
+    if(!stepping) return;
+
+    queue.end(level);
+    queue.clearHighlights(level);
+    stepping = false;
+    queue = null;
   }
 
-  private void addOutlines(BlockPos pos, ServerLevel level)
+  private void sendFeedback(int steps, boolean exhausted)
   {
-    List<AABB> outlineAabbs = level.getBlockState(pos).getShape(level, pos).toAabbs();
-    if(outlineAabbs.isEmpty())
-      block_highlights.add(new AABB(pos));
+    if(steps == 0)
+      Messenger.m(actor, d(level), err(" "), p(queue.getPhase()), err(" queue exhausted"));
+    else if(exhausted)
+      Messenger.m(actor, d(level), t(" stepped"), n(" " + steps + " "), p(queue, steps), t(" (queue exhausted)"));
     else
-    {
-      outlineAabbs.replaceAll((box) -> box.move(pos));
-      block_highlights.addAll(outlineAabbs);
-    }
+      Messenger.m(actor, d(level), t(" stepped"), n(" " + steps + " "), p(queue, steps));
   }
 
-  // Accessor cast warnings
-  @SuppressWarnings("unchecked")
-  public <T> void stepScheduledTicksLithium(LithiumServerTickScheduler<T> scheduler, int count)
+  public boolean canStep(CommandContext<CommandSourceStack> c, AbstractQueue queue)
   {
-    if(stepping == TickPhase.UNKNOWN)
-    {
-      scheduler.selectTicks(handler.time);
-      lithium_scheduled_tick_step_index = 0;
-    }
+    if(!handler.canStep(c, 0, queue.getPhase())) return false;
 
-    ArrayList<TickEntry<T>> ticks = ((LithiumServerTickSchedulerAccessor<T>)scheduler).getExecutingTicks();
-    int ticksSize = ticks.size();
-    for(; lithium_scheduled_tick_step_index < ticksSize && executed_steps < count; lithium_scheduled_tick_step_index++)
-    {
-      TickEntry<T> tick = ticks.get(lithium_scheduled_tick_step_index);
-      if(tick == null)
-        continue;
-      tick.consumed = true;
-      ((LithiumServerTickSchedulerAccessor<T>)scheduler).getTickConsumer().accept(tick);
-      if(range == -1 || squaredDistance(tick.pos, pos) <= range)
-      {
-        addOutlines(tick.pos, handler.level);
-        executed_steps ++;
-      }
-    }
-    exhausted = lithium_scheduled_tick_step_index == ticksSize;
-  }
-
-  public <T> void stepScheduledTicks(ServerTickList<T> tickList, int count)
-  {
-    if(stepping == TickPhase.UNKNOWN)
-    {
-      Iterator<TickNextTickData<T>> iterator = tickList.tickNextTickList.iterator();
-
-      for(int i = 0; i < 65536 && iterator.hasNext();)
-      {
-        TickNextTickData<T> tick = iterator.next();
-        if(tick.triggerTick > handler.level.getGameTime())
-          break;
-        if(handler.level.isPositionTickingWithEntitiesLoaded(tick.pos))
-        {
-          iterator.remove();
-          tickList.tickNextTickSet.remove(tick);
-          tickList.currentlyTicking.add(tick);
-          i ++;
-        }
-      }
-    }
-
-    while(executed_steps < count)
-    {
-      TickNextTickData<T> tick = tickList.currentlyTicking.poll();
-      if(tick == null)
-      {
-        exhausted = true;
-        break;
-      }
-
-      if(handler.level.isPositionTickingWithEntitiesLoaded(tick.pos))
-      {
-        tickList.alreadyTicked.add(tick);
-        tickList.ticker.accept(tick);
-      }
-      else
-        tickList.scheduleTick(tick.pos, tick.getType(), 0);
-
-      if(range == -1 || squaredDistance(tick.pos, pos) <= range)
-      {
-        addOutlines(tick.pos, handler.level);
-        executed_steps ++;
-      }
-    }
-  }
-
-  private void stepBlockEvents(int count)
-  {
-
-    while(executed_steps < count && handler.level.blockEvents.size() != 0)
-    {
-      BlockEventData blockEvent = handler.level.blockEvents.removeFirst();
-      if(handler.level.doBlockEvent(blockEvent))
-      {
-        handler.level.server.getPlayerList().broadcast(null, blockEvent.getPos().getX(), blockEvent.getPos().getY(), blockEvent.getPos().getZ(), 64.0D, handler.level.dimension(), new ClientboundBlockEventPacket(blockEvent.getPos(), blockEvent.getBlock(), blockEvent.getParamA(), blockEvent.getParamB()));
-
-        if(range == -1 || squaredDistance(blockEvent.getPos(), pos) <= range)
-        {
-          addOutlines(blockEvent.getPos(), handler.level);
-          executed_steps ++;
-        }
-      }
-    }
-  }
-
-  private void stepEntities(int count)
-  {
-    if(stepping == TickPhase.UNKNOWN)
-    {
-      handler.level.entityTickList.iterated = handler.level.entityTickList.active;
-      entity_iterator = handler.level.entityTickList.active.values().iterator();
-    }
-
-    while(executed_steps < count && entity_iterator.hasNext())
-    {
-      Entity entity = entity_iterator.next();
-      if(entity.isRemoved()) continue;
-
-      if(handler.level.shouldDiscardEntity(entity))
-        entity.discard();
-      else
-      {
-        entity.checkDespawn();
-        Entity entity2 = entity.getVehicle();
-        if(entity2 != null)
-        {
-          if(!entity2.isRemoved() && entity2.hasPassenger(entity))
-            continue;
-
-          entity.stopRiding();
-        }
-
-        handler.level.guardEntityTick(handler.level::tickNonPassenger, entity);
-      }
-      if(range == -1 || squaredDistance(entity.blockPosition(), pos) <= range)
-      {
-        entity_highlights.add(entity.getId());
-        executed_steps ++;
-      }
-    }
-    exhausted = !entity_iterator.hasNext();
-  }
-
-  private void stepBlockEntities(int count)
-  {
-    if(!handler.level.tickingBlockEntities)
-    {
-      handler.level.tickingBlockEntities = true;
-      if(!handler.level.pendingBlockEntityTickers.isEmpty())
-      {
-        handler.level.blockEntityTickers.addAll(handler.level.pendingBlockEntityTickers);
-        handler.level.pendingBlockEntityTickers.clear();
-      }
-
-      block_entity_iterator = handler.level.blockEntityTickers.iterator();
-    }
-
-    while(executed_steps < count && block_entity_iterator.hasNext())
-    {
-      TickingBlockEntity ticker = block_entity_iterator.next();
-      if(range == -1 || squaredDistance(ticker.getPos(), pos) <= range)
-      {
-        addOutlines(ticker.getPos(), handler.level);
-        executed_steps ++;
-      }
-
-      if(ticker.isRemoved())
-        block_entity_iterator.remove();
-      else
-        ticker.tick();
-    }
-    exhausted = !block_entity_iterator.hasNext();
-  }
-
-  public void sendFeedback()
-  {
-    if(executed_steps == 0)
-      Messenger.m(commandSource, d(handler.level), err(" "), p(stepping), err(" queue exhausted"));
-    else if(executed_steps != scheduled_count || isExhausted())
-      Messenger.m(commandSource, d(handler.level), t(" stepped"), n(" " + executed_steps + " "), p(stepping, executed_steps), t(" (queue exhausted)"));
-    else
-      Messenger.m(commandSource, d(handler.level), t(" stepped"), n(" " + executed_steps + " "), p(stepping, executed_steps));
-
-    executed_steps = 0;
-  }
-
-  public void finishQueueStep()
-  {
-    if(stepping == TickPhase.UNKNOWN)
-      return;
-
-    range = -2;
-    switch(stepping)
-    {
-      case BLOCK_TICK:
-        finishStepBlockTicks();
-        break;
-      case FLUID_TICK:
-        finishStepFluidTicks();
-        break;
-      case BLOCK_EVENT:
-        ServerNetworkHandler.clearBlockHighlights(handler.level);
-        break;
-      case ENTITY:
-        finishStepEntities();
-        break;
-      case BLOCK_ENTITY:
-        finishStepBlockEntities();
-        break;
-    }
-    block_highlights = new ArrayList<>();
-    entity_highlights = new ArrayList<>();
-    executed_steps = 0;
-    exhausted = false;
-    stepping = TickPhase.UNKNOWN;
-  }
-
-  private void finishStepBlockTicks()
-  {
-    if(handler.level.blockTicks instanceof LithiumServerTickScheduler)
-    {
-      stepScheduledTicksLithium((LithiumServerTickScheduler<Block>)handler.level.blockTicks, 2147483647);
-      ((LithiumServerTickSchedulerAccessor<?>)handler.level.blockTicks).getExecutingTicks().clear();
-      ((LithiumServerTickSchedulerAccessor<?>)handler.level.blockTicks).getExecutingTicksSet().clear();
-    }
-    else
-    {
-      stepScheduledTicks(handler.level.blockTicks, 2147483647);
-      handler.level.blockTicks.alreadyTicked.clear();
-      handler.level.blockTicks.currentlyTicking.clear();
-    }
-
-    ServerNetworkHandler.clearBlockHighlights(handler.level);
-    handler.advancePhase();
-  }
-
-  private void finishStepFluidTicks()
-  {
-    stepScheduledTicks(handler.level.liquidTicks, 2147483647);
-    if(handler.level.liquidTicks instanceof LithiumServerTickScheduler)
-    {
-      stepScheduledTicksLithium((LithiumServerTickScheduler<Fluid>)handler.level.liquidTicks, 2147483647);
-      ((LithiumServerTickSchedulerAccessor<?>)handler.level.liquidTicks).getExecutingTicks().clear();
-      ((LithiumServerTickSchedulerAccessor<?>)handler.level.liquidTicks).getExecutingTicksSet().clear();
-    }
-    else
-    {
-      stepScheduledTicks(handler.level.liquidTicks, 2147483647);
-
-      handler.level.liquidTicks.alreadyTicked.clear();
-      handler.level.liquidTicks.currentlyTicking.clear();
-    }
-
-    ServerNetworkHandler.clearBlockHighlights(handler.level);
-    handler.advancePhase();
-  }
-
-  private void finishStepEntities()
-  {
-    stepEntities(2147483647);
-    handler.level.entityTickList.iterated = null;
-
-    ServerNetworkHandler.clearEntityHighlights(handler.level);
-    handler.advancePhase();
-  }
-
-  private void finishStepBlockEntities()
-  {
-    stepBlockEntities(2147483647);
-    handler.level.tickingBlockEntities = false;
-
-    ServerNetworkHandler.clearBlockHighlights(handler.level);
-    handler.advancePhase();
-  }
-
-  public boolean isExhausted()
-  {
-    if(stepping == TickPhase.UNKNOWN) return false;
-
-    boolean noMore = false;
-    switch(stepping)
-    {
-      case BLOCK_TICK:
-      case FLUID_TICK:
-      case ENTITY:
-      case BLOCK_ENTITY:
-        noMore = exhausted;
-        break;
-      case BLOCK_EVENT:
-        noMore = handler.level.blockEvents.isEmpty();
-        break;
-    }
-    return noMore;
-  }
-
-  public boolean canStep(CommandContext<CommandSourceStack> c, TickPhase queue)
-  {
-    if(!handler.canStep(c, 0, queue)) return false;
-
-    if(handler.current_phase.isPosteriorTo(queue))
-    {
-
-      Messenger.m(c.getSource(), d(handler.level), err(" cannot queueStep because "), p(queue), err(" phase already happened"));
-      return false;
-    }
-    if(handler.current_phase.isPriorTo(queue))
+    if(handler.current_phase.isPriorTo(queue.getPhase()))
       return true;
 
-    if(isExhausted())
+    if(queue.cantStep(level))
     {
-      Messenger.m(c.getSource(), d(handler.level), err(" exhausted "), p(queue), err(" queue"));
+      Messenger.m(c.getSource(), d(level), err(" "), p(queue.getPhase()), err(" queue exhausted"));
       return false;
     }
+
+    return true;
+  }
+
+  public boolean canStep(AbstractQueue queue)
+  {
+    if(!handler.canStep(0, queue.getPhase())) return false;
+
+    if(handler.current_phase.isPriorTo(queue.getPhase()))
+      return true;
+
+    if(queue.cantStep(level))
+      return false;
 
     return true;
   }

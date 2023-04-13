@@ -14,13 +14,13 @@ public enum TickPhase
   WORLD_BORDER     ("worldBorder"     , "World Border"),
   WEATHER          ("weather"         , "Weather"),
   TIME             ("time"            , "Time"),
-  BLOCK_TICK       ("blockTick"       , "Block Tick"  , "Block Ticks"),
-  FLUID_TICK       ("fluidTick"       , "Fluid Tick"  , "Block Ticks"),
+  BLOCK_TICK       ("blockTick"       , "Block Tick"),
+  FLUID_TICK       ("fluidTick"       , "Fluid Tick"),
   RAID             ("raid"            , "Raid"),
   CHUNK            ("chunk"           , "Chunk"),
-  BLOCK_EVENT      ("blockEvent"      , "Block Event" , "Block Events"),
-  ENTITY           ("entity"          , "Entity"      , "Entities"),
-  BLOCK_ENTITY     ("blockEntity"     , "Block Entity", "Block Entities"),
+  BLOCK_EVENT      ("blockEvent"      , "Block Event"),
+  ENTITY           ("entity"          , "Entity"),
+  BLOCK_ENTITY     ("blockEntity"     , "Block Entity"),
   ENTITY_MANAGEMENT("entityManagement", "Entity Management");
 
   private static final TickPhase[] BY_ID;
@@ -28,7 +28,7 @@ public enum TickPhase
 
   public static final DynamicCommandExceptionType INVALID_TICK_PHASE_EXCEPTION = new DynamicCommandExceptionType(key -> new LiteralMessage("Invalid tick phase '" + key + "'"));
 
-  static 
+  static
   {
     TickPhase[] values = SubTick.getTickPhaseOrder();
     BY_ID = new TickPhase[values.length];
@@ -36,11 +36,11 @@ public enum TickPhase
 
     int id = 0;
 
-    for (TickPhase phase : values)
+    for(TickPhase phase : values)
     {
-      if (phase == null || phase == UNKNOWN)
+      if(phase == null || phase == UNKNOWN)
         throw new IllegalStateException("invalid tick phase " + phase + " provided in tick phase order!");
-      if (phase.id != -1)
+      if(phase.id != -1)
         throw new IllegalStateException("tick phase " + phase + " appears multiple times in tick phase order!");
       phase.id = id++;
       BY_ID[phase.id] = phase;
@@ -49,21 +49,14 @@ public enum TickPhase
   }
 
   private final String commandKey;
-  private final String nameSingle;
-  private final String nameMultiple;
+  private final String name;
 
   private int id = -1;
 
   private TickPhase(String commandKey, String name)
   {
-    this(commandKey, name, name);
-  }
-
-  private TickPhase(String commandKey, String nameSingle, String nameMultiple)
-  {
     this.commandKey = commandKey;
-    this.nameSingle = nameSingle;
-    this.nameMultiple = nameMultiple;
+    this.name = name;
   }
 
   @Override
@@ -83,12 +76,7 @@ public enum TickPhase
 
   public String getName()
   {
-    return getName(1);
-  }
-
-  public String getName(int count)
-  {
-    return count == 1 ? nameSingle : nameMultiple;
+    return name;
   }
 
   public boolean exists()
@@ -129,7 +117,7 @@ public enum TickPhase
   public static TickPhase byCommandKey(String key) throws CommandSyntaxException
   {
     TickPhase phase = BY_COMMAND_KEY.get(key);
-    if (phase == null || !phase.exists())
+    if(phase == null || !phase.exists())
       throw INVALID_TICK_PHASE_EXCEPTION.create(key);
     return phase;
   }
