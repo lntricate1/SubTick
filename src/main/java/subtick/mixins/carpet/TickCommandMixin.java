@@ -68,10 +68,4 @@ public class TickCommandMixin
     );
     ci.cancel();
   }
-
-  // @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/arguments/IntegerArgumentType;integer(II)Lcom/mojang/brigadier/arguments/IntegerArgumentType;"), index = 0, remap = false)
-  // private static int minimumTicks(int original)
-  // {
-  //   return 0;
-  // }
 }
