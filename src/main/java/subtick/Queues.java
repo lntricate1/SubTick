@@ -29,6 +29,7 @@ public class Queues
   private final TickingQueue[] queues;
 
   private TickPhase currentPhase;
+  private TickingQueue previous;
   private TickingQueue current;
   private TickingMode currentMode;
   private int count;
@@ -61,6 +62,11 @@ public class Queues
     TickingQueue queue = get(phase);
     if (queue == null)
       throw INVALID_QUEUE_EXCEPTION.create(phase.getCommandKey());
+    if(queue != current)
+    {
+      previous = current;
+      current = queue;
+    }
 
     if(current == null)
       currentPhase = phase;
@@ -110,6 +116,7 @@ public class Queues
     current.emptyHighlights();
     sendFeedback(pair.getA(), pair.getB());
 
+    previous = current;
     scheduled = false;
   }
 
@@ -117,9 +124,11 @@ public class Queues
   {
     if(!stepping) return;
 
-    current.step(currentMode, 1, BlockPos.ZERO, -2);
-    current.end(currentMode);
-    current.clearHighlights();
+    previous.step(currentMode, 1, BlockPos.ZERO, -2);
+    previous.end(currentMode);
+    previous.exhausted = false;
+    previous.clearHighlights();
+    handler.advancePhase();
     stepping = false;
     currentPhase = TickPhase.UNKNOWN;
     current = null;

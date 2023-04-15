@@ -65,6 +65,7 @@ public class TickHandler
     {
       unfreezing = false;
       frozen = false;
+      queues.end();
       ServerNetworkHandler.updateFrozenStateToConnectedPlayers(level, false);
       return true;
     }
@@ -74,7 +75,11 @@ public class TickHandler
 
     // Stepping
     if(in_first_stepped_phase)
+    {
+      if(remaining_ticks != 0 || phase != target_phase)
+        queues.end();
       ServerNetworkHandler.updateTickPlayerActiveTimeoutToConnectedPlayers(level, remaining_ticks);
+    }
     else if(phase.isFirst())
       --remaining_ticks;
 
@@ -100,8 +105,6 @@ public class TickHandler
     in_first_stepped_phase = true;
     remaining_ticks = ticks;
     target_phase = phase;
-    if(ticks != 0 || phase != current_phase)
-      queues.end();
   }
 
   public void freeze(TickPhase phase)
@@ -117,7 +120,6 @@ public class TickHandler
     {
       unfreezing = true;
       stepping = false;
-      queues.end();
     }
   }
 

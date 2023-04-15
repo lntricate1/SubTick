@@ -41,6 +41,7 @@ public class TickCommand
           .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
           .executes((c) -> toggleFreeze(c, TickPhase.byCommandKey(getString(c, "phase"))))
         )
+        // Carpet parity
         .then(literal("on")
           .then(argument("phase", word())
             .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
@@ -48,14 +49,13 @@ public class TickCommand
           )
           .executes((c) -> freeze(c, TickPhase.byCommandKey(Settings.subtickDefaultPhase)))
         )
+        // Carpet parity
         .then(literal("off")
           .executes((c) -> unFreeze(c))
         )
+        // Carpet parity
         .then(literal("status")
           .executes((c) -> when(c))
-        )
-        .then(literal("deep")
-          .executes((c) -> {Messenger.m(c.getSource(), err("This feature doesn't do anything because SubTick is installed.")); return 1;})
         )
         .executes((c) -> toggleFreeze(c, TickPhase.byCommandKey(Settings.subtickDefaultPhase)))
       )

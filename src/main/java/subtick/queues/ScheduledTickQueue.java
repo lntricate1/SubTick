@@ -146,7 +146,6 @@ public class ScheduledTickQueue<T> extends TickingQueue
 
   private void endVanilla()
   {
-    stepVanilla(1, BlockPos.ZERO, -2);
     tickList.alreadyTicked.clear();
     tickList.currentlyTicking.clear();
   }
@@ -155,7 +154,6 @@ public class ScheduledTickQueue<T> extends TickingQueue
   @SuppressWarnings("unchecked")
   private void endLithium()
   {
-    stepLithium(1, BlockPos.ZERO, -2);
     ((LithiumServerTickSchedulerAccessor<T>)tickList).getExecutingTicks().clear();
     ((LithiumServerTickSchedulerAccessor<T>)tickList).getExecutingTicksSet().clear();
   }
