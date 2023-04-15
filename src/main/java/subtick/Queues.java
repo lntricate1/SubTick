@@ -117,6 +117,7 @@ public class Queues
   {
     if(!stepping) return;
 
+    current.step(currentMode, 1, BlockPos.ZERO, -2);
     current.end(currentMode);
     current.clearHighlights();
     stepping = false;
