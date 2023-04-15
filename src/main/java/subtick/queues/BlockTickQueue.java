@@ -132,7 +132,6 @@ public class BlockTickQueue extends AbstractQueue
 
   private void endVanilla(ServerLevel level)
   {
-    stepVanilla(1, level, BlockPos.ZERO, -2);
     level.blockTicks.alreadyTicked.clear();
     level.blockTicks.currentlyTicking.clear();
   }
@@ -141,7 +140,6 @@ public class BlockTickQueue extends AbstractQueue
   @SuppressWarnings("unchecked")
   private void endLithium(ServerLevel level)
   {
-    stepLithium(1, level, BlockPos.ZERO, -2);
     ((LithiumServerTickSchedulerAccessor<Block>)level.blockTicks).getExecutingTicks().clear();
     ((LithiumServerTickSchedulerAccessor<Block>)level.blockTicks).getExecutingTicksSet().clear();
   }

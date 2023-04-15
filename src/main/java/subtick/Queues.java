@@ -35,6 +35,8 @@ public class Queues
   private final ServerLevel level;
 
   private AbstractQueue queue;
+  private AbstractQueue prev_queue;
+  private String current_queue_key = "";
   private int count;
   private BlockPos pos;
   private int range;
@@ -66,8 +68,12 @@ public class Queues
 
   public void schedule(CommandContext<CommandSourceStack> c, String commandKey, int count, BlockPos pos, int range, boolean force)
   {
-    if(queue == null)
+    if(!current_queue_key.equals(commandKey))
+    {
+      prev_queue = queue;
       queue = BY_COMMAND_KEY.get(commandKey);
+      current_queue_key = commandKey;
+    }
 
     if(canStep(queue))
       handler.step(0, queue.getPhase());
@@ -110,18 +116,22 @@ public class Queues
     queue.emptyHighlights();
     sendFeedback(pair.getA(), pair.getB());
 
+    prev_queue = queue;
     scheduled = false;
   }
 
   public void end()
   {
     if(!stepping) return;
+    System.out.println(Thread.currentThread());
 
-    queue.step(1, level, BlockPos.ZERO, -2);
-    queue.end(level);
-    queue.clearHighlights(level);
+    prev_queue.step(1, level, BlockPos.ZERO, -2);
+    prev_queue.end(level);
+    prev_queue.exhausted = false;
+    prev_queue.clearHighlights(level);
+    handler.advancePhase();
+    current_queue_key = "";
     stepping = false;
-    queue = null;
   }
 
   private void sendFeedback(int steps, boolean exhausted)

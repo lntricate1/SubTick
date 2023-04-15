@@ -132,7 +132,6 @@ public class FluidTickQueue extends AbstractQueue
 
   private void endVanilla(ServerLevel level)
   {
-    stepVanilla(1, level, BlockPos.ZERO, -2);
     level.liquidTicks.alreadyTicked.clear();
     level.liquidTicks.currentlyTicking.clear();
   }
@@ -141,7 +140,6 @@ public class FluidTickQueue extends AbstractQueue
   @SuppressWarnings("unchecked")
   private void endLithium(ServerLevel level)
   {
-    stepLithium(1, level, BlockPos.ZERO, -2);
     ((LithiumServerTickSchedulerAccessor<Fluid>)level.liquidTicks).getExecutingTicks().clear();
     ((LithiumServerTickSchedulerAccessor<Fluid>)level.liquidTicks).getExecutingTicksSet().clear();
   }
