@@ -32,6 +32,7 @@ public class Queues
   private TickingQueue previous;
   private TickingQueue current;
   private TickingMode currentMode;
+
   private int count;
   private BlockPos pos;
   private int range;
@@ -39,6 +40,7 @@ public class Queues
 
   public boolean scheduled;
   private boolean stepping;
+  private boolean should_end;
 
   public Queues(TickHandler handler)
   {
@@ -62,42 +64,34 @@ public class Queues
     TickingQueue queue = get(phase);
     if (queue == null)
       throw INVALID_QUEUE_EXCEPTION.create(phase.getCommandKey());
-    if(queue != current)
-    {
-      previous = current;
-      current = queue;
-    }
-
-    if(current == null)
-      currentPhase = phase;
-      current = queue;
-      currentMode = mode;
-
-    if(canStep(currentPhase, currentMode))
-      handler.step(0, currentPhase);
+    if(canStep(phase, mode))
+      handler.step(0, phase);
     else
     {
-      if(force)
+      if (force)
       {
-        if(!handler.canStep(c, 1, currentPhase))
+        if (!handler.canStep(c, 1, phase))
           return;
-        handler.step(1, currentPhase);
-        currentPhase = phase;
-        current = queue;
-        currentMode = mode;
+        handler.step(1, phase);
       }
       else
       {
-        canStep(c, currentPhase, currentMode);
+        canStep(c, phase, mode);
         return;
       }
     }
 
+    current = queue;
     this.actor = c.getSource();
     this.count = count;
     this.pos = pos;
     this.range = range;
     scheduled = true;
+  }
+
+  public void scheduleEnd()
+  {
+    should_end = true;
   }
 
   public void execute()
@@ -122,6 +116,8 @@ public class Queues
 
   public void end()
   {
+    if(!should_end) return;
+    should_end = false;
     if(!stepping) return;
 
     previous.step(currentMode, 1, BlockPos.ZERO, -2);
@@ -130,9 +126,6 @@ public class Queues
     previous.clearHighlights();
     handler.advancePhase();
     stepping = false;
-    currentPhase = TickPhase.UNKNOWN;
-    current = null;
-    currentMode = null;
   }
 
   private void sendFeedback(int steps, boolean exhausted)
