@@ -36,7 +36,6 @@ public class Queues
 
   private AbstractQueue queue;
   private AbstractQueue prev_queue;
-  private String current_queue_key = "";
   private int count;
   private BlockPos pos;
   private int range;
@@ -44,6 +43,7 @@ public class Queues
 
   public boolean scheduled;
   private boolean stepping;
+  private boolean should_end;
 
   public Queues(TickHandler handler)
   {
@@ -68,36 +68,35 @@ public class Queues
 
   public void schedule(CommandContext<CommandSourceStack> c, String commandKey, int count, BlockPos pos, int range, boolean force)
   {
-    if(!current_queue_key.equals(commandKey))
-    {
-      prev_queue = queue;
-      queue = BY_COMMAND_KEY.get(commandKey);
-      current_queue_key = commandKey;
-    }
-
-    if(canStep(queue))
-      handler.step(0, queue.getPhase());
+    AbstractQueue newQueue = BY_COMMAND_KEY.get(commandKey);
+    if(canStep(newQueue))
+      handler.step(0, newQueue.getPhase());
     else
     {
       if(force)
       {
-        if(!handler.canStep(c, 1, queue.getPhase()))
+        if(!handler.canStep(c, 1, newQueue.getPhase()))
           return;
-        handler.step(1, queue.getPhase());
-        queue = BY_COMMAND_KEY.get(commandKey);
+        handler.step(1, newQueue.getPhase());
       }
       else
       {
-        canStep(c, queue);
+        canStep(c, newQueue);
         return;
       }
     }
 
+    queue = newQueue;
     this.actor = c.getSource();
     this.count = count;
     this.pos = pos;
     this.range = range;
     scheduled = true;
+  }
+
+  public void scheduleEnd()
+  {
+    should_end = true;
   }
 
   public void execute()
@@ -122,15 +121,15 @@ public class Queues
 
   public void end()
   {
+    if(!should_end) return;
+    should_end = false;
     if(!stepping) return;
-    System.out.println(Thread.currentThread());
 
     prev_queue.step(1, level, BlockPos.ZERO, -2);
     prev_queue.end(level);
     prev_queue.exhausted = false;
     prev_queue.clearHighlights(level);
     handler.advancePhase();
-    current_queue_key = "";
     stepping = false;
   }
 
