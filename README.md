@@ -22,7 +22,6 @@ A carpet extension that allows you to freeze and step to any specific tick phase
 
 `-` = todo, `+` = done, `~` = in progress, `~~` = someone else is on it
 
-- `-` Allow the client to animate moving blocks 1 by 1, to show the movement when ticking BlockEntities.
 - `-` Fix some chunk unloading stuff with player movement while frozen.
 - `-` etc... (aka put it on cmp and have people report bugs)
 
