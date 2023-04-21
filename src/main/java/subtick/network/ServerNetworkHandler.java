@@ -5,9 +5,12 @@ import java.util.List;
 import carpet.CarpetSettings;
 import carpet.helpers.TickSpeed;
 import carpet.network.CarpetClient;
+import carpet.network.ClientNetworkHandler;
 import carpet.utils.Messenger;
 import io.netty.buffer.Unpooled;
+import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
@@ -21,39 +24,62 @@ import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
 
 public class ServerNetworkHandler
 {
+  private static boolean tryClient(ServerLevel level, CompoundTag tag)
+  {
+    if(level.server.isDedicatedServer())
+      return false;
+
+    FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
+    packetBuf.writeVarInt(CarpetClient.DATA);
+    packetBuf.writeNbt(tag);
+    Minecraft minecraft = Minecraft.getInstance();
+    ClientNetworkHandler.handleData(packetBuf, minecraft.player);
+    return true;
+  }
+
   public static void sendNbt(ServerPlayer player, CompoundTag tag, CommandSourceStack actor)
   {
-      FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
-      packetBuf.writeVarInt(CarpetClient.DATA);
-      packetBuf.writeNbt(tag);
+    ServerLevel level = player.getLevel();
+    if(tryClient(level, tag))
+      return;
 
-      try
-      {
-        player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
-      }
-      catch(IllegalArgumentException e)
-      {
-        Messenger.m(actor, SubTick.err("Highlights not sent because packet size exceeds maximum. Step less at a time to see highlights."));
-      }
+    FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
+    packetBuf.writeVarInt(CarpetClient.DATA);
+    packetBuf.writeNbt(tag);
+
+    try
+    {
+      player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+    }
+    catch(IllegalArgumentException e)
+    {
+      Messenger.m(actor, SubTick.err("Highlights not sent because packet size exceeds maximum. Step less at a time to see highlights."));
+    }
   }
 
   public static void sendNbt(ServerPlayer player, CompoundTag tag)
   {
-      FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
-      packetBuf.writeVarInt(CarpetClient.DATA);
-      packetBuf.writeNbt(tag);
+    ServerLevel level = player.getLevel();
+    if(tryClient(level, tag))
+      return;
 
-      try
-      {
-        player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
-      }
-      catch(IllegalArgumentException e)
-      {
-      }
+    FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
+    packetBuf.writeVarInt(CarpetClient.DATA);
+    packetBuf.writeNbt(tag);
+
+    try
+    {
+      player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+    }
+    catch(IllegalArgumentException e)
+    {}
   }
 
   public static void sendNbt(ServerLevel level, CompoundTag tag, CommandSourceStack actor)
   {
+    if(tryClient(level, tag))
+      return;
+
     for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
     {
       if(player.level != level) continue;
@@ -64,6 +90,9 @@ public class ServerNetworkHandler
 
   public static void sendNbt(ServerLevel level, CompoundTag tag)
   {
+    if(tryClient(level, tag))
+      return;
+
     for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
     {
       if(player.level != level) continue;
@@ -74,6 +103,11 @@ public class ServerNetworkHandler
 
   public static void updateFrozenStateToConnectedPlayers(ServerLevel level, boolean frozen)
   {
+    // if(!level.server.isDedicatedServer())
+    // {
+    //   ClientTickHandler.setFreeze(frozen);
+    //   return;
+    // }
     if(CarpetSettings.superSecretSetting) return;
 
     CompoundTag tag = new CompoundTag();
@@ -86,6 +120,12 @@ public class ServerNetworkHandler
 
   public static void updateFrozenStateToConnectedPlayer(ServerPlayer player, boolean frozen)
   {
+    // ServerLevel level = player.getLevel();
+    // if(!level.server.isDedicatedServer())
+    // {
+    //   ClientTickHandler.setFreeze(frozen);
+    //   return;
+    // }
     if(CarpetSettings.superSecretSetting) return;
     if(!ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().containsKey(player)) return;
 
@@ -99,6 +139,11 @@ public class ServerNetworkHandler
 
   public static void updateTickPlayerActiveTimeoutToConnectedPlayers(ServerLevel level, int ticks)
   {
+    // if(!level.server.isDedicatedServer() && ticks > TickSpeed.PLAYER_GRACE)
+    // {
+    //   ClientTickHandler.scheduleTickStep(ticks);
+    //   return;
+    // }
     if(CarpetSettings.superSecretSetting) return;
 
     CompoundTag tag = new CompoundTag();
@@ -150,5 +195,23 @@ public class ServerNetworkHandler
     CompoundTag tag = new CompoundTag();
     tag.put("EntityHighlighting", new IntArrayTag(new int[]{}));
     sendNbt(level, tag);
+  }
+
+  public static void sendBlockEntityTicks(List<BlockPos> poses, ServerLevel level, CommandSourceStack actor)
+  {
+    if(CarpetSettings.superSecretSetting || poses.isEmpty()) return;
+
+    CompoundTag tag = new CompoundTag();
+    ListTag list = new ListTag();
+    for(BlockPos pos : poses)
+    {
+      CompoundTag nbt = new CompoundTag();
+      nbt.putInt("x", pos.getX());
+      nbt.putInt("y", pos.getY());
+      nbt.putInt("z", pos.getZ());
+      list.add(nbt);
+    }
+    tag.put("BlockEntityTicks", list);
+    sendNbt(level, tag, actor);
   }
 }

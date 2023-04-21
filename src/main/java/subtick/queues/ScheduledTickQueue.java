@@ -112,7 +112,7 @@ public class ScheduledTickQueue<T> extends TickingQueue
 
       if(rangeCheck(tick.pos, pos, range))
       {
-        addBlockOutline(tick.pos, level);
+        addBlockOutline(tick.pos);
         executed_steps ++;
       }
     }
@@ -137,7 +137,7 @@ public class ScheduledTickQueue<T> extends TickingQueue
       scheduler.getTickConsumer().accept(tick);
       if(rangeCheck(tick.pos, pos, range))
       {
-        addBlockOutline(tick.pos, level);
+        addBlockOutline(tick.pos);
         executed_steps ++;
       }
     }

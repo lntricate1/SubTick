@@ -41,7 +41,7 @@ public class BlockEventQueue extends TickingQueue
 
         if(rangeCheck(blockEvent.getPos(), pos, range))
         {
-          addBlockOutline(blockEvent.getPos(), level);
+          addBlockOutline(blockEvent.getPos());
           if (mode == INDEX || batchIndex == batchSize)
             executed_steps ++;
         }

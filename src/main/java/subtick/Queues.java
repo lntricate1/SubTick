@@ -106,7 +106,7 @@ public class Queues
 
     Pair<Integer, Boolean> pair = current.step(currentMode, count, pos, range);
 
-    current.sendHighlights(level, actor);
+    current.sendHighlights(actor);
     current.emptyHighlights();
     sendFeedback(pair.getA(), pair.getB());
 

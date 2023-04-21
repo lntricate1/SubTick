@@ -37,7 +37,7 @@ public abstract class TickingQueue
     return x*x + y*y + z*z <= range*range;
   }
 
-  public void addBlockOutline(BlockPos pos, ServerLevel level)
+  public void addBlockOutline(BlockPos pos)
   {
     List<AABB> outlineAabbs = level.getBlockState(pos).getShape(level, pos).toAabbs();
     if(outlineAabbs.isEmpty())
@@ -69,7 +69,7 @@ public abstract class TickingQueue
     return entity_highlights;
   }
 
-  public void sendHighlights(ServerLevel level, CommandSourceStack actor)
+  public void sendHighlights(CommandSourceStack actor)
   {
     if(!block_highlights.isEmpty())
       ServerNetworkHandler.sendBlockHighlights(block_highlights, level, actor);
@@ -79,8 +79,8 @@ public abstract class TickingQueue
 
   public void emptyHighlights()
   {
-    block_highlights = new ArrayList<>();
-    entity_highlights = new ArrayList<>();
+    block_highlights.clear();
+    entity_highlights.clear();
   }
 
   public void clearHighlights()

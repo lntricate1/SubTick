@@ -15,10 +15,11 @@
     "lithium.LithiumServerTickSchedulerAccessor"
   ],
   "client": [
-    "carpet.ClientNetworkHandlerMixin",
+    "client.ClientNetworkHandlerMixin",
 
-    "EntityMixin",
-    "LevelRendererMixin"
+    "client.ClientLevelMixin",
+    "client.EntityMixin",
+    "client.LevelRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
