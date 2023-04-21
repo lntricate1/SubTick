@@ -8,6 +8,7 @@ import carpet.network.CarpetClient;
 import carpet.utils.Messenger;
 import io.netty.buffer.Unpooled;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
@@ -150,5 +151,23 @@ public class ServerNetworkHandler
     CompoundTag tag = new CompoundTag();
     tag.put("EntityHighlighting", new IntArrayTag(new int[]{}));
     sendNbt(level, tag);
+  }
+
+  public static void sendBlockEntityTicks(List<BlockPos> poses, ServerLevel level, CommandSourceStack actor)
+  {
+    if(CarpetSettings.superSecretSetting || poses.isEmpty()) return;
+
+    CompoundTag tag = new CompoundTag();
+    ListTag list = new ListTag();
+    for(BlockPos pos : poses)
+    {
+      CompoundTag nbt = new CompoundTag();
+      nbt.putInt("x", pos.getX());
+      nbt.putInt("y", pos.getY());
+      nbt.putInt("z", pos.getZ());
+      list.add(nbt);
+    }
+    tag.put("BlockEntityTicks", list);
+    sendNbt(level, tag, actor);
   }
 }

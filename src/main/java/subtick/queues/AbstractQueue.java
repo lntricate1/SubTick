@@ -100,8 +100,8 @@ public abstract class AbstractQueue
 
   public void emptyHighlights()
   {
-    block_highlights = new ArrayList<>();
-    entity_highlights = new ArrayList<>();
+    block_highlights.clear();
+    entity_highlights.clear();
   }
 
   public void clearHighlights(ServerLevel level)

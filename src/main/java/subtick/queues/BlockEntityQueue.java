@@ -1,16 +1,21 @@
 package subtick.queues;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
 import oshi.util.tuples.Pair;
 import subtick.TickPhase;
+import subtick.network.ServerNetworkHandler;
 
 public class BlockEntityQueue extends AbstractQueue
 {
   private Iterator<TickingBlockEntity> block_entity_iterator;
+  public List<BlockPos> executed_poses = new ArrayList<BlockPos>();
 
   public BlockEntityQueue()
   {
@@ -40,6 +45,7 @@ public class BlockEntityQueue extends AbstractQueue
       if(rangeCheck(ticker.getPos(), pos, range))
       {
         addBlockOutline(ticker.getPos(), level);
+        executed_poses.add(ticker.getPos());
         executed_steps ++;
       }
 
@@ -55,5 +61,21 @@ public class BlockEntityQueue extends AbstractQueue
   public void end(ServerLevel level)
   {
     level.tickingBlockEntities = false;
+  }
+
+  @Override
+  public void sendHighlights(ServerLevel level, CommandSourceStack actor)
+  {
+    if(!getBlockHighlights().isEmpty())
+      ServerNetworkHandler.sendBlockHighlights(getBlockHighlights(), level, actor);
+    if(!executed_poses.isEmpty())
+      ServerNetworkHandler.sendBlockEntityTicks(executed_poses, level, actor);
+  }
+
+  @Override
+  public void emptyHighlights()
+  {
+    super.emptyHighlights();
+    executed_poses.clear();
   }
 }
