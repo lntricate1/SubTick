@@ -19,7 +19,6 @@ import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NumericTag;
 import subtick.RenderHandler;
-import subtick.client.ClientBlockEntityQueue;
 import subtick.client.ClientTickHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
