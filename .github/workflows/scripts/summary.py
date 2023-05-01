@@ -24,7 +24,7 @@ with open(os.environ['GITHUB_STEP_SUMMARY'], 'w') as f:
 		subproject = m['subproject_dir']
 		if target_subproject != '' and subproject != target_subproject:
 			continue
-		game_versions = read_prop('versions/{}/gradle.properties'.format(subproject), 'game_versions')
+		game_versions = read_prop('versions/{}/gradle.properties'.format(subproject), 'minecraft_version')
 		game_versions = game_versions.strip().replace('\\n', ', ')
 		file_names = glob.glob('build-artifacts/{}/build/libs/*.jar'.format(subproject))
 		file_names = ', '.join(map(
