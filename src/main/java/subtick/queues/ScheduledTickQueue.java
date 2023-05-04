@@ -1,6 +1,7 @@
 package subtick.queues;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -11,22 +12,50 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ServerTickList;
 import net.minecraft.world.level.TickNextTickData;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.material.Fluid;
 import oshi.util.tuples.Pair;
 import subtick.SubTick;
 import subtick.TickPhase;
 import subtick.TickingMode;
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
 
-public class BlockTickQueue extends TickingQueue
+public class ScheduledTickQueue<T> extends TickingQueue
 {
-  private static TickingMode INDEX = new TickingMode("Block Tick", "Block Ticks");
-  private static TickingMode PRIORITY = new TickingMode("Block Tick Priority", "Block Tick Priorities");
+  private final TickingMode INDEX;
+  private final TickingMode PRIORITY;
 
+  private final ServerTickList<T> tickList;
   private int lithium_scheduled_tick_step_index = 0;
 
-  public BlockTickQueue(ServerLevel level)
+  public static ScheduledTickQueue<Block> block(ServerLevel level)
   {
-    super(Map.of("index", INDEX, "priority", PRIORITY), INDEX, level, TickPhase.BLOCK_TICK, "blockTick");
+    return new ScheduledTickQueue<Block>(
+      new TickingMode("Block Tick", "Block Ticks"),
+      new TickingMode("Block Tick Priority", "Block Tick Priorities"),
+      level.blockTicks, level, TickPhase.BLOCK_TICK, "blockTick");
+  }
+
+  public static ScheduledTickQueue<Fluid> fluid(ServerLevel level)
+  {
+    return new ScheduledTickQueue<Fluid>(
+      new TickingMode("Fluid Tick", "Fluid Ticks"),
+      level.liquidTicks, level, TickPhase.FLUID_TICK, "fluidTick");
+  }
+
+  public ScheduledTickQueue(TickingMode INDEX, TickingMode PRIORITY, ServerTickList<T> tickList, ServerLevel level, TickPhase phase, String commandKey)
+  {
+    super(Map.of("index", INDEX, "priority", PRIORITY), INDEX, level, phase, commandKey);
+    this.INDEX = INDEX;
+    this.PRIORITY = PRIORITY;
+    this.tickList = tickList;
+  }
+
+  public ScheduledTickQueue(TickingMode INDEX, ServerTickList<T> tickList, ServerLevel level, TickPhase phase, String commandKey)
+  {
+    super(new HashMap<>(), INDEX, level, phase, commandKey);
+    this.INDEX = INDEX;
+    this.PRIORITY = null;
+    this.tickList = tickList;
   }
 
   @Override
@@ -57,11 +86,10 @@ public class BlockTickQueue extends TickingQueue
 
   private void startVanilla()
   {
-    ServerTickList<Block> tickList = level.blockTicks;
-    Iterator<TickNextTickData<Block>> iterator = tickList.tickNextTickList.iterator();
+    Iterator<TickNextTickData<T>> iterator = tickList.tickNextTickList.iterator();
     for(int i = 0; i < 65536 && iterator.hasNext();)
     {
-      TickNextTickData<Block> tick = iterator.next();
+      TickNextTickData<T> tick = iterator.next();
       if(tick.triggerTick > level.getGameTime())
         break;
       if(level.isPositionTickingWithEntitiesLoaded(tick.pos))
@@ -76,17 +104,16 @@ public class BlockTickQueue extends TickingQueue
 
   private void startLithium()
   {
-    ((LithiumServerTickScheduler<Block>)level.blockTicks).selectTicks(level.getGameTime());
+    ((LithiumServerTickScheduler<T>)tickList).selectTicks(level.getGameTime());
     lithium_scheduled_tick_step_index = 0;
   }
 
   public Pair<Integer, Boolean> stepVanilla(int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
-    ServerTickList<Block> tickList = level.blockTicks;
     while(executed_steps < count)
     {
-      TickNextTickData<Block> tick = tickList.currentlyTicking.poll();
+      TickNextTickData<T> tick = tickList.currentlyTicking.poll();
       if(tick == null)
       {
         exhausted = true;
@@ -110,7 +137,7 @@ public class BlockTickQueue extends TickingQueue
 
       if(currentMode == PRIORITY)
       {
-        TickNextTickData<Block> nextTick = tickList.currentlyTicking.peek();
+        TickNextTickData<T> nextTick = tickList.currentlyTicking.peek();
         if(nextTick != null && nextTick.priority != tick.priority)
           executed_steps ++;
       }
@@ -122,13 +149,13 @@ public class BlockTickQueue extends TickingQueue
   @SuppressWarnings("unchecked")
   private Pair<Integer, Boolean> stepLithium(int count, BlockPos pos, int range)
   {
-    LithiumServerTickSchedulerAccessor<Block> scheduler = (LithiumServerTickSchedulerAccessor<Block>)(LithiumServerTickScheduler<Block>)level.blockTicks;
+    LithiumServerTickSchedulerAccessor<T> scheduler = (LithiumServerTickSchedulerAccessor<T>)(LithiumServerTickScheduler<T>)tickList;
     int executed_steps = 0;
-    ArrayList<TickEntry<Block>> ticks = scheduler.getExecutingTicks();
+    ArrayList<TickEntry<T>> ticks = scheduler.getExecutingTicks();
     int ticksSize = ticks.size();
     for(; lithium_scheduled_tick_step_index < ticksSize && executed_steps < count; lithium_scheduled_tick_step_index++)
     {
-      TickEntry<Block> tick = ticks.get(lithium_scheduled_tick_step_index);
+      TickEntry<T> tick = ticks.get(lithium_scheduled_tick_step_index);
       if(tick == null)
         continue;
       tick.consumed = true;
@@ -142,7 +169,7 @@ public class BlockTickQueue extends TickingQueue
 
       if(currentMode == PRIORITY)
       {
-        TickEntry<Block> nextTick = ticks.get(lithium_scheduled_tick_step_index + 1);
+        TickEntry<T> nextTick = ticks.get(lithium_scheduled_tick_step_index + 1);
         if(nextTick != null && nextTick.priority != tick.priority)
           executed_steps ++;
       }
@@ -152,15 +179,15 @@ public class BlockTickQueue extends TickingQueue
 
   private void endVanilla()
   {
-    level.blockTicks.alreadyTicked.clear();
-    level.blockTicks.currentlyTicking.clear();
+    tickList.alreadyTicked.clear();
+    tickList.currentlyTicking.clear();
   }
 
   // Accessor cast warnings
   @SuppressWarnings("unchecked")
   private void endLithium()
   {
-    ((LithiumServerTickSchedulerAccessor<Block>)level.blockTicks).getExecutingTicks().clear();
-    ((LithiumServerTickSchedulerAccessor<Block>)level.blockTicks).getExecutingTicksSet().clear();
+    ((LithiumServerTickSchedulerAccessor<T>)tickList).getExecutingTicks().clear();
+    ((LithiumServerTickSchedulerAccessor<T>)tickList).getExecutingTicksSet().clear();
   }
 }

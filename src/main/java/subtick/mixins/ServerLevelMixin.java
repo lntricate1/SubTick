@@ -42,11 +42,17 @@ import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 @Mixin(ServerLevel.class)
 public class ServerLevelMixin implements ILevel
 {
-  private final TickHandler tickHandler = new TickHandler((ServerLevel)(Object)this);
+  private TickHandler tickHandler;
 
   @Override
   public TickHandler getTickHandler() {
     return tickHandler;
+  }
+
+  @Inject(method = "<init>", at = @At("TAIL"))
+  private void init(CallbackInfo ci)
+  {
+    tickHandler = new TickHandler((ServerLevel)(Object)this);
   }
 
   @Inject(method = "tickTime", at = @At("HEAD"))
