@@ -34,7 +34,7 @@ public abstract class TickingQueue
 
   public TickingQueue(ServerLevel level, TickPhase phase, String commandKey, String nameSingle, String nameMultiple)
   {
-    this(new HashMap<>(), new TickingMode("", nameSingle, nameMultiple), level, phase, commandKey);
+    this(new HashMap<>(), new TickingMode(nameSingle, nameMultiple), level, phase, commandKey);
   }
 
   public TickingQueue(Map<String, TickingMode> modes, TickingMode defaultMode, ServerLevel level, TickPhase phase, String commandKey)

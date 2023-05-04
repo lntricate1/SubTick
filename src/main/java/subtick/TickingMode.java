@@ -2,18 +2,12 @@ package subtick;
 
 public class TickingMode
 {
-  private final String commandKey, name, nameMultiple;
+  private final String name, nameMultiple;
 
-  public TickingMode(String commandKey, String name, String nameMultiple)
+  public TickingMode(String name, String nameMultiple)
   {
-    this.commandKey = commandKey;
     this.name = name;
     this.nameMultiple = nameMultiple;
-  }
-
-  public String getCommandKey()
-  {
-    return commandKey;
   }
 
   public String getName(int count)

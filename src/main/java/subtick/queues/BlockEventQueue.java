@@ -12,8 +12,8 @@ import subtick.TickingMode;
 
 public class BlockEventQueue extends TickingQueue
 {
-  private static TickingMode INDEX = new TickingMode("index", "Block Event", "Block Events");
-  private static TickingMode DEPTH = new TickingMode("depth", "Block Event Depth", "Block Event Depths");
+  private static TickingMode INDEX = new TickingMode("Block Event", "Block Events");
+  private static TickingMode DEPTH = new TickingMode("Block Event Depth", "Block Event Depths");
 
   public BlockEventQueue(ServerLevel level)
   {
