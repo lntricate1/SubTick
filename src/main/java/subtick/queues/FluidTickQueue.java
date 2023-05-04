@@ -15,42 +15,42 @@ import subtick.SubTick;
 import subtick.TickPhase;
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
 
-public class FluidTickQueue extends AbstractQueue
+public class FluidTickQueue extends TickingQueue
 {
   private int lithium_scheduled_tick_step_index = 0;
 
-  public FluidTickQueue()
+  public FluidTickQueue(ServerLevel level)
   {
-    super(TickPhase.FLUID_TICK, "fluidTick", "Fluid Tick", "Fluid Ticks");
+    super(level, TickPhase.FLUID_TICK, "fluidTick", "Fluid Tick", "Fluid Ticks");
   }
 
   @Override
-  public void start(ServerLevel level)
+  public void start()
   {
     if(SubTick.hasLithium)
-      startLithium(level);
+      startLithium();
     else
-      startVanilla(level);
+      startVanilla();
   }
 
   @Override
-  public Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range)
+  public Pair<Integer, Boolean> step(int count, BlockPos pos, int range)
   {
     if(SubTick.hasLithium)
-      return stepLithium(count, level, pos, range);
-    return stepVanilla(count, level, pos, range);
+      return stepLithium(count, pos, range);
+    return stepVanilla(count, pos, range);
   }
 
   @Override
-  public void end(ServerLevel level)
+  public void end()
   {
     if(SubTick.hasLithium)
-      endLithium(level);
+      endLithium();
     else
-      endVanilla(level);
+      endVanilla();
   }
 
-  private void startVanilla(ServerLevel level)
+  private void startVanilla()
   {
     ServerTickList<Fluid> tickList = level.liquidTicks;
     Iterator<TickNextTickData<Fluid>> iterator = tickList.tickNextTickList.iterator();
@@ -69,13 +69,13 @@ public class FluidTickQueue extends AbstractQueue
     }
   }
 
-  private void startLithium(ServerLevel level)
+  private void startLithium()
   {
     ((LithiumServerTickScheduler<Fluid>)level.liquidTicks).selectTicks(level.getGameTime());
     lithium_scheduled_tick_step_index = 0;
   }
 
-  public Pair<Integer, Boolean> stepVanilla(int count, ServerLevel level, BlockPos pos, int range)
+  public Pair<Integer, Boolean> stepVanilla(int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
     ServerTickList<Fluid> tickList = level.liquidTicks;
@@ -98,7 +98,7 @@ public class FluidTickQueue extends AbstractQueue
 
       if(rangeCheck(tick.pos, pos, range))
       {
-        addBlockOutline(tick.pos, level);
+        addBlockOutline(tick.pos);
         executed_steps ++;
       }
     }
@@ -108,7 +108,7 @@ public class FluidTickQueue extends AbstractQueue
 
   // Accessor cast warnings
   @SuppressWarnings("unchecked")
-  private Pair<Integer, Boolean> stepLithium(int count, ServerLevel level, BlockPos pos, int range)
+  private Pair<Integer, Boolean> stepLithium(int count, BlockPos pos, int range)
   {
     LithiumServerTickSchedulerAccessor<Fluid> scheduler = (LithiumServerTickSchedulerAccessor<Fluid>)(LithiumServerTickScheduler<Fluid>)level.liquidTicks;
     int executed_steps = 0;
@@ -123,14 +123,14 @@ public class FluidTickQueue extends AbstractQueue
       scheduler.getTickConsumer().accept(tick);
       if(rangeCheck(tick.pos, pos, range))
       {
-        addBlockOutline(tick.pos, level);
+        addBlockOutline(tick.pos);
         executed_steps ++;
       }
     }
     return new Pair<Integer, Boolean>(executed_steps, exhausted = lithium_scheduled_tick_step_index == ticksSize);
   }
 
-  private void endVanilla(ServerLevel level)
+  private void endVanilla()
   {
     level.liquidTicks.alreadyTicked.clear();
     level.liquidTicks.currentlyTicking.clear();
@@ -138,7 +138,7 @@ public class FluidTickQueue extends AbstractQueue
 
   // Accessor cast warnings
   @SuppressWarnings("unchecked")
-  private void endLithium(ServerLevel level)
+  private void endLithium()
   {
     ((LithiumServerTickSchedulerAccessor<Fluid>)level.liquidTicks).getExecutingTicks().clear();
     ((LithiumServerTickSchedulerAccessor<Fluid>)level.liquidTicks).getExecutingTicksSet().clear();

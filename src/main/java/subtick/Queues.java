@@ -2,6 +2,7 @@ package subtick;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.context.CommandContext;
@@ -13,13 +14,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import oshi.util.tuples.Pair;
-import subtick.queues.AbstractQueue;
-import subtick.queues.BlockEntityQueue;
-import subtick.queues.BlockEventDepthQueue;
-import subtick.queues.BlockEventQueue;
-import subtick.queues.BlockTickQueue;
-import subtick.queues.EntityQueue;
-import subtick.queues.FluidTickQueue;
+import subtick.queues.TickingQueue;
 
 import static subtick.SubTick.t;
 import static subtick.SubTick.n;
@@ -30,12 +25,13 @@ import static subtick.SubTick.err;
 public class Queues
 {
   public static final DynamicCommandExceptionType INVALID_QUEUE_EXCEPTION = new DynamicCommandExceptionType(key -> new LiteralMessage("Invalid queue '" + key + "'"));
-  private final Map<String, AbstractQueue> BY_COMMAND_KEY = new HashMap<>();
+  private static final Map<String, Function<ServerLevel, ? extends TickingQueue>> FACTORIES = new HashMap<>();
+  private final Map<String, TickingQueue> BY_COMMAND_KEY = new HashMap<>();
   private final TickHandler handler;
   private final ServerLevel level;
 
-  private AbstractQueue queue;
-  private AbstractQueue prev_queue;
+  private TickingQueue queue;
+  private TickingQueue prev_queue;
   private int count;
   private BlockPos pos;
   private int range;
@@ -49,26 +45,31 @@ public class Queues
   {
     this.handler = handler;
     this.level = handler.level;
-    // This thing should really be improved
-    BY_COMMAND_KEY.put("blockTick", new BlockTickQueue());
-    BY_COMMAND_KEY.put("fluidTick", new FluidTickQueue());
-    BY_COMMAND_KEY.put("blockEvent", new BlockEventQueue());
-    BY_COMMAND_KEY.put("blockEventDepth", new BlockEventDepthQueue());
-    BY_COMMAND_KEY.put("entity", new EntityQueue());
-    BY_COMMAND_KEY.put("blockEntity", new BlockEntityQueue());
+    for(Map.Entry<String, Function<ServerLevel, ? extends TickingQueue>> entry : FACTORIES.entrySet())
+      BY_COMMAND_KEY.put(entry.getKey(), entry.getValue().apply(level));
   }
 
-  public AbstractQueue byCommandKey(String commandKey) throws CommandSyntaxException
+  public static void registerQueue(String commandKey, Function<ServerLevel, ? extends TickingQueue> queueFactory)
   {
-    AbstractQueue queue = BY_COMMAND_KEY.get(commandKey);
+    FACTORIES.put(commandKey, queueFactory);
+  }
+
+  public static String[] getQueues()
+  {
+    return FACTORIES.keySet().toArray(new String[0]);
+  }
+
+  public TickingQueue byCommandKey(String commandKey) throws CommandSyntaxException
+  {
+    TickingQueue queue = BY_COMMAND_KEY.get(commandKey);
     if(queue == null)
       throw INVALID_QUEUE_EXCEPTION.create(commandKey);
     return queue;
   }
 
-  public void schedule(CommandContext<CommandSourceStack> c, String commandKey, int count, BlockPos pos, int range, boolean force)
+  public void schedule(CommandContext<CommandSourceStack> c, String commandKey, String modeKey, int count, BlockPos pos, int range, boolean force) throws CommandSyntaxException
   {
-    AbstractQueue newQueue = BY_COMMAND_KEY.get(commandKey);
+    TickingQueue newQueue = byCommandKey(commandKey);
     if(canStep(newQueue))
       handler.step(0, newQueue.getPhase());
     else
@@ -87,6 +88,7 @@ public class Queues
     }
 
     queue = newQueue;
+    queue.setMode(modeKey);
     this.actor = c.getSource();
     this.count = count;
     this.pos = pos;
@@ -105,13 +107,13 @@ public class Queues
 
     if(!stepping)
     {
-      queue.start(level);
+      queue.start();
       stepping = true;
     }
 
-    Pair<Integer, Boolean> pair = queue.step(count, level, pos, range);
+    Pair<Integer, Boolean> pair = queue.step(count, pos, range);
 
-    queue.sendHighlights(level, actor);
+    queue.sendHighlights(actor);
     queue.emptyHighlights();
     sendFeedback(pair.getA(), pair.getB());
 
@@ -125,10 +127,10 @@ public class Queues
     should_end = false;
     if(!stepping) return;
 
-    prev_queue.step(1, level, BlockPos.ZERO, -2);
-    prev_queue.end(level);
+    prev_queue.step(1, BlockPos.ZERO, -2);
+    prev_queue.end();
     prev_queue.exhausted = false;
-    prev_queue.clearHighlights(level);
+    prev_queue.clearHighlights();
     handler.advancePhase();
     stepping = false;
   }
@@ -136,21 +138,21 @@ public class Queues
   private void sendFeedback(int steps, boolean exhausted)
   {
     if(steps == 0)
-      Messenger.m(actor, d(level), err(" "), p(queue.getPhase()), err(" queue exhausted"));
+      Messenger.m(actor, d(level), err(" "), p(queue, 1), err(" queue exhausted"));
     else if(exhausted)
       Messenger.m(actor, d(level), t(" stepped"), n(" " + steps + " "), p(queue, steps), t(" (queue exhausted)"));
     else
       Messenger.m(actor, d(level), t(" stepped"), n(" " + steps + " "), p(queue, steps));
   }
 
-  public boolean canStep(CommandContext<CommandSourceStack> c, AbstractQueue queue)
+  public boolean canStep(CommandContext<CommandSourceStack> c, TickingQueue queue)
   {
     if(!handler.canStep(c, 0, queue.getPhase())) return false;
 
     if(handler.current_phase.isPriorTo(queue.getPhase()))
       return true;
 
-    if(queue.cantStep(level))
+    if(queue.cantStep())
     {
       Messenger.m(c.getSource(), d(level), err(" "), p(queue.getPhase()), err(" queue exhausted"));
       return false;
@@ -159,14 +161,14 @@ public class Queues
     return true;
   }
 
-  public boolean canStep(AbstractQueue queue)
+  public boolean canStep(TickingQueue queue)
   {
     if(!handler.canStep(0, queue.getPhase())) return false;
 
     if(handler.current_phase.isPriorTo(queue.getPhase()))
       return true;
 
-    if(queue.cantStep(level))
+    if(queue.cantStep())
       return false;
 
     return true;

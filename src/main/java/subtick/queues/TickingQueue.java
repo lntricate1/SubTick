@@ -1,7 +1,13 @@
 package subtick.queues;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.mojang.brigadier.LiteralMessage;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -9,27 +15,52 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
 import oshi.util.tuples.Pair;
 import subtick.TickPhase;
+import subtick.TickingMode;
 import subtick.network.ServerNetworkHandler;
 
-public abstract class AbstractQueue
+public abstract class TickingQueue
 {
+  public static final DynamicCommandExceptionType INVALID_MODE_EXCEPTION = new DynamicCommandExceptionType(key -> new LiteralMessage("Invalid mode '" + key + "'"));
   private List<AABB> block_highlights = new ArrayList<>();
   private List<Integer> entity_highlights = new ArrayList<>();
-  private final TickPhase phase;
-  private final String commandKey, nameSingle, nameMultiple;
   public boolean exhausted;
 
-  public AbstractQueue(TickPhase phase, String commandKey, String nameSingle, String nameMultiple)
+  protected final ServerLevel level;
+  protected final TickPhase phase;
+  protected final String commandKey;
+  protected final Map<String, TickingMode> modes;
+  protected final TickingMode defaultMode;
+  protected TickingMode currentMode;
+
+  public TickingQueue(ServerLevel level, TickPhase phase, String commandKey, String nameSingle, String nameMultiple)
   {
-    this.phase = phase;
-    this.commandKey = commandKey;
-    this.nameSingle = nameSingle;
-    this.nameMultiple = nameMultiple;
+    this(new HashMap<>(), new TickingMode("", nameSingle, nameMultiple), level, phase, commandKey);
   }
 
-  @Override
-  public String toString() {
-    return commandKey;
+  public TickingQueue(Map<String, TickingMode> modes, TickingMode defaultMode, ServerLevel level, TickPhase phase, String commandKey)
+  {
+    this.modes = modes;
+    this.defaultMode = defaultMode;
+    this.level = level;
+    this.phase = phase;
+    this.commandKey = commandKey;
+  }
+
+  public String[] getModes()
+  {
+    return modes.keySet().toArray(new String[0]);
+  }
+
+  public void setMode(String key) throws CommandSyntaxException
+  {
+    try
+    {
+      currentMode = key.equals("") ? defaultMode : modes.get(key);
+    }
+    catch(Exception e)
+    {
+      throw INVALID_MODE_EXCEPTION.create(key);
+    }
   }
 
   public TickPhase getPhase()
@@ -37,14 +68,9 @@ public abstract class AbstractQueue
     return phase;
   }
 
-  public String getCommandKey()
-  {
-    return commandKey;
-  }
-
   public String getName(int count)
   {
-    return count == 1 ? nameSingle : nameMultiple;
+    return currentMode.getName(count);
   }
 
   public static boolean rangeCheck(BlockPos a, BlockPos b, long range)
@@ -58,7 +84,7 @@ public abstract class AbstractQueue
     return x*x + y*y + z*z <= range*range;
   }
 
-  public void addBlockOutline(BlockPos pos, ServerLevel level)
+  public void addBlockOutline(BlockPos pos)
   {
     List<AABB> outlineAabbs = level.getBlockState(pos).getShape(level, pos).toAabbs();
     if(outlineAabbs.isEmpty())
@@ -90,7 +116,7 @@ public abstract class AbstractQueue
     return entity_highlights;
   }
 
-  public void sendHighlights(ServerLevel level, CommandSourceStack actor)
+  public void sendHighlights(CommandSourceStack actor)
   {
     if(!block_highlights.isEmpty())
       ServerNetworkHandler.sendBlockHighlights(block_highlights, level, actor);
@@ -104,18 +130,18 @@ public abstract class AbstractQueue
     entity_highlights.clear();
   }
 
-  public void clearHighlights(ServerLevel level)
+  public void clearHighlights()
   {
     ServerNetworkHandler.clearBlockHighlights(level);
     ServerNetworkHandler.clearEntityHighlights(level);
   }
 
-  public boolean cantStep(ServerLevel level)
+  public boolean cantStep()
   {
     return exhausted;
   }
 
-  public abstract void start(ServerLevel level);
-  public abstract Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range);
-  public abstract void end(ServerLevel level);
+  public abstract void start();
+  public abstract Pair<Integer, Boolean> step(int count, BlockPos pos, int range);
+  public abstract void end();
 }

@@ -12,7 +12,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import subtick.commands.TickCommand;
 import subtick.interfaces.ILevel;
-import subtick.queues.AbstractQueue;
+import subtick.queues.TickingQueue;
+import subtick.queues.BlockEntityQueue;
+import subtick.queues.BlockEventQueue;
+import subtick.queues.BlockTickQueue;
+import subtick.queues.EntityQueue;
+import subtick.queues.FluidTickQueue;
 import subtick.commands.PhaseCommand;
 import subtick.commands.QueueCommand;
 
@@ -39,6 +44,12 @@ public class SubTick implements CarpetExtension, ModInitializer
     MOD_NAME = metadata.getName();
     MOD_VERSION = metadata.getVersion().getFriendlyString();
     CarpetServer.settingsManager.parseSettingsClass(Settings.class);
+
+    Queues.registerQueue("blockTick", BlockTickQueue::new);
+    Queues.registerQueue("fluidTick", FluidTickQueue::new);
+    Queues.registerQueue("blockEvent", BlockEventQueue::new);
+    Queues.registerQueue("entity", EntityQueue::new);
+    Queues.registerQueue("blockEntity", BlockEntityQueue::new);
   }
 
   @Override
@@ -68,7 +79,7 @@ public class SubTick implements CarpetExtension, ModInitializer
     return Settings.subtickPhaseFormat + " " + phase.getName();
   }
 
-  public static String p(AbstractQueue queue, int count)
+  public static String p(TickingQueue queue, int count)
   {
     return Settings.subtickPhaseFormat + " " + queue.getName(count);
   }

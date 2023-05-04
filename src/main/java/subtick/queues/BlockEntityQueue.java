@@ -12,18 +12,18 @@ import oshi.util.tuples.Pair;
 import subtick.TickPhase;
 import subtick.network.ServerNetworkHandler;
 
-public class BlockEntityQueue extends AbstractQueue
+public class BlockEntityQueue extends TickingQueue
 {
   private Iterator<TickingBlockEntity> block_entity_iterator;
   public List<BlockPos> executed_poses = new ArrayList<BlockPos>();
 
-  public BlockEntityQueue()
+  public BlockEntityQueue(ServerLevel level)
   {
-    super(TickPhase.BLOCK_ENTITY, "blockEntity", "Block Entity", "Block Entities");
+    super(level, TickPhase.BLOCK_ENTITY, "blockEntity", "Block Entity", "Block Entities");
   }
 
   @Override
-  public void start(ServerLevel level)
+  public void start()
   {
     level.tickingBlockEntities = true;
     if(!level.pendingBlockEntityTickers.isEmpty())
@@ -35,7 +35,7 @@ public class BlockEntityQueue extends AbstractQueue
   }
 
   @Override
-  public Pair<Integer, Boolean> step(int count, ServerLevel level, BlockPos pos, int range)
+  public Pair<Integer, Boolean> step(int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
 
@@ -44,7 +44,7 @@ public class BlockEntityQueue extends AbstractQueue
       TickingBlockEntity ticker = block_entity_iterator.next();
       if(rangeCheck(ticker.getPos(), pos, range))
       {
-        addBlockOutline(ticker.getPos(), level);
+        addBlockOutline(ticker.getPos());
         executed_poses.add(ticker.getPos());
         executed_steps ++;
       }
@@ -58,13 +58,13 @@ public class BlockEntityQueue extends AbstractQueue
   }
 
   @Override
-  public void end(ServerLevel level)
+  public void end()
   {
     level.tickingBlockEntities = false;
   }
 
   @Override
-  public void sendHighlights(ServerLevel level, CommandSourceStack actor)
+  public void sendHighlights(CommandSourceStack actor)
   {
     if(!getBlockHighlights().isEmpty())
       ServerNetworkHandler.sendBlockHighlights(getBlockHighlights(), level, actor);
