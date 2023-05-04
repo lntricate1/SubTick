@@ -53,14 +53,10 @@ public abstract class TickingQueue
 
   public void setMode(String key) throws CommandSyntaxException
   {
-    try
-    {
-      currentMode = key.equals("") ? defaultMode : modes.get(key);
-    }
-    catch(Exception e)
-    {
+    TickingMode newMode = key.equals("") ? defaultMode : modes.get(key);
+    if(newMode == null)
       throw INVALID_MODE_EXCEPTION.create(key);
-    }
+    currentMode = newMode;
   }
 
   public TickPhase getPhase()
