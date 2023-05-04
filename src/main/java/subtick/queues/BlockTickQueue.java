@@ -2,6 +2,7 @@ package subtick.queues;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
 
 import me.jellysquid.mods.lithium.common.world.scheduler.LithiumServerTickScheduler;
 import me.jellysquid.mods.lithium.common.world.scheduler.TickEntry;
@@ -13,15 +14,19 @@ import net.minecraft.world.level.block.Block;
 import oshi.util.tuples.Pair;
 import subtick.SubTick;
 import subtick.TickPhase;
+import subtick.TickingMode;
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
 
 public class BlockTickQueue extends TickingQueue
 {
+  private static TickingMode INDEX = new TickingMode("Block Tick", "Block Ticks");
+  private static TickingMode PRIORITY = new TickingMode("Block Tick Priority", "Block Tick Priorities");
+
   private int lithium_scheduled_tick_step_index = 0;
 
   public BlockTickQueue(ServerLevel level)
   {
-    super(level, TickPhase.BLOCK_TICK, "blockTick", "Block Tick", "Block Ticks");
+    super(Map.of("index", INDEX, "priority", PRIORITY), INDEX, level, TickPhase.BLOCK_TICK, "blockTick");
   }
 
   @Override
@@ -99,11 +104,18 @@ public class BlockTickQueue extends TickingQueue
       if(rangeCheck(tick.pos, pos, range))
       {
         addBlockOutline(tick.pos);
-        executed_steps ++;
+        if(currentMode == INDEX)
+          executed_steps ++;
+      }
+
+      if(currentMode == PRIORITY)
+      {
+        TickNextTickData<Block> nextTick = tickList.currentlyTicking.peek();
+        if(nextTick != null && nextTick.priority != tick.priority)
+          executed_steps ++;
       }
     }
-    exhausted = false;
-    return new Pair<Integer, Boolean>(executed_steps, false);
+    return new Pair<Integer, Boolean>(executed_steps, exhausted = tickList.currentlyTicking.isEmpty());
   }
 
   // Accessor cast warnings
@@ -124,7 +136,15 @@ public class BlockTickQueue extends TickingQueue
       if(rangeCheck(tick.pos, pos, range))
       {
         addBlockOutline(tick.pos);
-        executed_steps ++;
+        if(currentMode == INDEX)
+          executed_steps ++;
+      }
+
+      if(currentMode == PRIORITY)
+      {
+        TickEntry<Block> nextTick = ticks.get(lithium_scheduled_tick_step_index + 1);
+        if(nextTick != null && nextTick.priority != tick.priority)
+          executed_steps ++;
       }
     }
     return new Pair<Integer, Boolean>(executed_steps, exhausted = lithium_scheduled_tick_step_index == ticksSize);
