@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -46,9 +47,9 @@ public abstract class TickingQueue
     this.commandKey = commandKey;
   }
 
-  public String[] getModes()
+  public Set<String> getModes()
   {
-    return modes.keySet().toArray(new String[0]);
+    return modes.keySet();
   }
 
   public void setMode(String key) throws CommandSyntaxException
