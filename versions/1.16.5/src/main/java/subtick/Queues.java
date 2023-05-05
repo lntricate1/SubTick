@@ -115,7 +115,7 @@ public class Queues
 
     queue.sendHighlights(actor);
     queue.emptyHighlights();
-    sendFeedback(pair.getLeft(), pair.getRight());
+    sendFeedback(pair.getA(), pair.getB());
 
     prev_queue = queue;
     scheduled = false;

@@ -5,7 +5,7 @@ import java.util.Iterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import oshi.util.tuples.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import subtick.TickPhase;
 
 public class EntityQueue extends TickingQueue
@@ -55,7 +55,7 @@ public class EntityQueue extends TickingQueue
         executed_steps ++;
       }
     }
-    return new Pair<Integer, Boolean>(executed_steps, exhausted = !entity_iterator.hasNext());
+    return Pair.of(executed_steps, exhausted = !entity_iterator.hasNext());
   }
 
   @Override

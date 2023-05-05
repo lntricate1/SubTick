@@ -13,7 +13,7 @@ import net.minecraft.world.level.ServerTickList;
 import net.minecraft.world.level.TickNextTickData;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
-import oshi.util.tuples.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import subtick.SubTick;
 import subtick.TickPhase;
 import subtick.TickingMode;
@@ -137,7 +137,7 @@ public class ScheduledTickQueue<T> extends TickingQueue
           executed_steps ++;
       }
     }
-    return new Pair<Integer, Boolean>(executed_steps, exhausted = tickList.currentlyTicking.isEmpty());
+    return Pair.of(executed_steps, exhausted = tickList.currentlyTicking.isEmpty());
   }
 
   // Accessor cast warnings
@@ -169,7 +169,7 @@ public class ScheduledTickQueue<T> extends TickingQueue
           executed_steps ++;
       }
     }
-    return new Pair<Integer, Boolean>(executed_steps, exhausted = lithium_scheduled_tick_step_index == ticksSize);
+    return Pair.of(executed_steps, exhausted = lithium_scheduled_tick_step_index == ticksSize);
   }
 
   private void endVanilla()

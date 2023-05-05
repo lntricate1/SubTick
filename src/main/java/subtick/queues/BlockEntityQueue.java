@@ -8,7 +8,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
-import oshi.util.tuples.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import subtick.TickPhase;
 import subtick.network.ServerNetworkHandler;
 
@@ -54,7 +54,7 @@ public class BlockEntityQueue extends TickingQueue
       else
         ticker.tick();
     }
-    return new Pair<Integer, Boolean>(executed_steps, exhausted = !block_entity_iterator.hasNext());
+    return Pair.of(executed_steps, exhausted = !block_entity_iterator.hasNext());
   }
 
   @Override

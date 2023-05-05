@@ -6,7 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.BlockEventData;
-import oshi.util.tuples.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import subtick.TickPhase;
 import subtick.TickingMode;
 
@@ -48,7 +48,7 @@ public class BlockEventQueue extends TickingQueue
       if(stepped)
         executed_steps ++;
     }
-    return new Pair<Integer, Boolean>(executed_steps, exhausted = level.blockEvents.size() == 0);
+    return Pair.of(executed_steps, exhausted = level.blockEvents.size() == 0);
   }
 
   @Override

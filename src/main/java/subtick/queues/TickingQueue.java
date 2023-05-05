@@ -14,7 +14,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
-import oshi.util.tuples.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import subtick.TickPhase;
 import subtick.TickingMode;
 import subtick.network.ServerNetworkHandler;
