@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/github/license/Fallen-Breath/fabric-mod-template.svg)](http://www.gnu.org/licenses/lgpl-3.0.html)
 
-This mod uses Fallen's fabric mod template.
+This mod uses [Fallen's fabric mod template](https://github.com/Fallen-Breath/fabric-mod-template).
 
 A carpet extension that allows you to freeze and step to any specific tick phase, as well as step through tile ticks, fluid ticks, block events, entities, and block entities individually. **You need it on your client to see highlights for queueStep!**
 
@@ -28,8 +28,8 @@ This mod uses carpet rules for its configuration options. For how to use the tex
 - `phaseStep [count=1]`: Steps the `count` phases forward, **stepping to the next tick if necessary**.
 - `phaseStep [phase]`: Steps to `phase`, **within the current tick**.
 - `phaseStep [phase] force`: Steps to the next `phase` **stepping to the next tick if necessary**.
-- `queueStep <queue> [count=1] [range=subtickDefaultRange]`: Steps through `count` elements in `queue` in range `range`, **within the current tick**.
-- `queueStep <queue> [count=1] [range=subtickDefaultRange] force`: Steps through `count` elements in `queue` in range `range`, **stepping to the next tick if necessary**.
+- `queueStep <queue> [count=1] [range=subtickDefaultRange]`: Steps through `count` elements in `queue` in range `range`, **within the current tick**. Set `range` to `-1` for unlimited range.
+- `queueStep <queue> [count=1] [range=subtickDefaultRange] force`: Steps through `count` elements in `queue` in range `range`, **stepping to the next tick if necessary**. Set `range` to `-1` for unlimited range.
 
 ### Special cases
 
