@@ -77,7 +77,11 @@ public class QueueCommand
 
   private static int step(CommandContext<CommandSourceStack> c, String commandKey, String modeKey, int count, int range, boolean force) throws CommandSyntaxException
   {
+    //#if MC >= 11904
+    //$$ SubTick.getTickHandler(c).queues.schedule(c, commandKey, modeKey, count, BlockPos.containing(c.getSource().getPosition()), range, force);
+    //#else
     SubTick.getTickHandler(c).queues.schedule(c, commandKey, modeKey, count, new BlockPos(c.getSource().getPosition()), range, force);
+    //#endif
     return Command.SINGLE_SUCCESS;
   }
 }

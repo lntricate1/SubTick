@@ -1,30 +1,46 @@
 accessWidener v1 named
 
 # Scheduled tick step
-accessible field net/minecraft/server/level/ServerLevel blockTicks Lnet/minecraft/world/level/ServerTickList;
-accessible field net/minecraft/server/level/ServerLevel liquidTicks Lnet/minecraft/world/level/ServerTickList;
-accessible field net/minecraft/world/level/ServerTickList tickNextTickSet Ljava/util/Set;
-accessible field net/minecraft/world/level/ServerTickList tickNextTickList Ljava/util/Set;
-accessible field net/minecraft/world/level/ServerTickList currentlyTicking Ljava/util/Queue;
-accessible field net/minecraft/world/level/ServerTickList alreadyTicked Ljava/util/List;
-accessible field net/minecraft/world/level/ServerTickList ticker Ljava/util/function/Consumer;
+accessible field net/minecraft/server/level/ServerLevel blockTicks Lnet/minecraft/world/ticks/LevelTicks;
+accessible field net/minecraft/server/level/ServerLevel fluidTicks Lnet/minecraft/world/ticks/LevelTicks;
+
+accessible method net/minecraft/world/ticks/LevelTicks collectTicks (JILnet/minecraft/util/profiling/ProfilerFiller;)V
+accessible method net/minecraft/world/ticks/LevelTicks cleanupAfterTick ()V
+accessible method net/minecraft/server/level/ServerLevel tickBlock (Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/Block;)V
+accessible method net/minecraft/server/level/ServerLevel tickFluid (Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/material/Fluid;)V
+
+accessible field net/minecraft/world/ticks/LevelTicks profiler Ljava/util/function/Supplier;
+accessible field net/minecraft/world/ticks/LevelTicks toRunThisTick Ljava/util/Queue;
+accessible field net/minecraft/world/ticks/LevelTicks toRunThisTickSet Ljava/util/Set;
+accessible field net/minecraft/world/ticks/LevelTicks alreadyRunThisTick Ljava/util/List;
+
+# accessible field net/minecraft/world/level/ServerTickList tickNextTickSet Ljava/util/Set;
+# accessible field net/minecraft/world/level/ServerTickList tickNextTickList Ljava/util/Set;
+# accessible field net/minecraft/world/level/ServerTickList currentlyTicking Ljava/util/Queue;
+# accessible field net/minecraft/world/level/ServerTickList alreadyTicked Ljava/util/List;
+# accessible field net/minecraft/world/level/ServerTickList ticker Ljava/util/function/Consumer;
 
 # Block event step
-accessible field net/minecraft/server/level/ServerLevel blockEvents Lit/unimi/dsi/fastutil/objects/ObjectLinkedOpenHashSet;
-accessible field net/minecraft/server/level/ServerLevel server Lnet/minecraft/server/MinecraftServer;
 accessible method net/minecraft/server/level/ServerLevel doBlockEvent (Lnet/minecraft/world/level/BlockEventData;)Z
 
+accessible field net/minecraft/server/level/ServerLevel blockEvents Lit/unimi/dsi/fastutil/objects/ObjectLinkedOpenHashSet;
+accessible field net/minecraft/server/level/ServerLevel server Lnet/minecraft/server/MinecraftServer;
+accessible field net/minecraft/server/level/ServerLevel blockEventsToReschedule Ljava/util/List;
+
 # Entity step
-accessible field net/minecraft/server/level/ServerLevel entityTickList Lnet/minecraft/world/level/entity/EntityTickList;
-accessible field net/minecraft/client/multiplayer/ClientLevel tickingEntities Lnet/minecraft/world/level/entity/EntityTickList;
-accessible field net/minecraft/world/level/entity/EntityTickList active Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
-accessible field net/minecraft/world/level/entity/EntityTickList iterated Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
 accessible method net/minecraft/server/level/ServerLevel shouldDiscardEntity (Lnet/minecraft/world/entity/Entity;)Z
 
+accessible field net/minecraft/server/level/ServerLevel entityTickList Lnet/minecraft/world/level/entity/EntityTickList;
+
+accessible field net/minecraft/client/multiplayer/ClientLevel tickingEntities Lnet/minecraft/world/level/entity/EntityTickList;
+
+accessible field net/minecraft/world/level/entity/EntityTickList active Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
+accessible field net/minecraft/world/level/entity/EntityTickList iterated Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;
+
 # Block entity step
+accessible method net/minecraft/server/level/ChunkMap tick ()V
+accessible method net/minecraft/server/level/ChunkMap getChunks ()Ljava/lang/Iterable;
+
 accessible field net/minecraft/world/level/Level tickingBlockEntities Z
 accessible field net/minecraft/world/level/Level pendingBlockEntityTickers Ljava/util/List;
 accessible field net/minecraft/world/level/Level blockEntityTickers Ljava/util/List;
-
-accessible method net/minecraft/server/level/ChunkMap tick ()V
-accessible method net/minecraft/server/level/ChunkMap getChunks ()Ljava/lang/Iterable;
