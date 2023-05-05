@@ -7,7 +7,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.BaseComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import subtick.commands.TickCommand;
@@ -83,7 +83,7 @@ public class SubTick implements CarpetExtension, ModInitializer
     return Settings.subtickPhaseFormat + " " + queue.getName(count);
   }
 
-  public static BaseComponent d(Level level)
+  public static Component d(Level level)
   {
     ResourceLocation location = level.dimension().location();
     return Messenger.c(

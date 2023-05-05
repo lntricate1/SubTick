@@ -9,7 +9,11 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+//#if MC >= 11900
+//$$ import org.joml.Matrix4f;
+//#else
 import com.mojang.math.Matrix4f;
+//#endif
 
 import carpet.fakes.MinecraftClientInferface;
 import net.minecraft.client.Camera;

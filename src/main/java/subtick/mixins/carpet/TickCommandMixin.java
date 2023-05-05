@@ -4,14 +4,18 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-// import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.brigadier.CommandDispatcher;
 
 import carpet.CarpetSettings;
 import carpet.commands.TickCommand;
+//#if MC >= 11900
+//$$ import carpet.utils.CommandHelper;
+//$$ import net.minecraft.commands.CommandBuildContext;
+//#else
 import carpet.settings.SettingsManager;
+//#endif
 import net.minecraft.commands.CommandSourceStack;
 
 import static net.minecraft.commands.Commands.argument;
@@ -35,11 +39,19 @@ public class TickCommandMixin
   @Shadow static int healthEntities(CommandSourceStack source, int ticks){return 0;}
 
   @Inject(method = "register", at = @At(value = "HEAD"), cancellable = true, remap = false)
-  private static void register(CommandDispatcher<CommandSourceStack> dispatcher, CallbackInfo ci)
+  private static void register(CommandDispatcher<CommandSourceStack> dispatcher,
+    //#if MC >= 11900
+    //$$ CommandBuildContext commandBuildContext,
+    //#endif
+    CallbackInfo ci)
   {
     dispatcher.register(
       literal("tick")
+        //#if MC >= 11900
+        //$$ .requires((p) -> CommandHelper.canUseCommand(p, CarpetSettings.commandTick))
+        //#else
         .requires((p) -> SettingsManager.canUseCommand(p, CarpetSettings.commandTick))
+        //#endif
         .then(literal("rate")
           .executes((c) -> queryTps(c.getSource()))
           .then(argument("rate", floatArg(0.1F, 500.0F))
