@@ -1,11 +1,13 @@
 package subtick.queues;
 
+import java.util.Collection;
 import java.util.Map;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.BlockEventData;
+import net.minecraft.world.level.ChunkPos;
 import oshi.util.tuples.Pair;
 import subtick.TickPhase;
 import subtick.TickingMode;
@@ -22,28 +24,36 @@ public class BlockEventQueue extends TickingQueue
 
   @Override
   public void start()
-  {}
+  {
+    level.blockEventsToReschedule.clear();
+  }
 
   @Override
   public Pair<Integer, Boolean> step(int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
-    while(executed_steps < count && level.blockEvents.size() != 0)
+    while(executed_steps < count && !level.blockEvents.isEmpty())
     {
       int size = currentMode == INDEX ? 1 : level.blockEvents.size();
       boolean stepped = false;
       for(int i = 0; i < size; i ++)
       {
         BlockEventData blockEvent = level.blockEvents.removeFirst();
-        if(!level.doBlockEvent(blockEvent))
-          continue;
-        level.server.getPlayerList().broadcast(null, blockEvent.getPos().getX(), blockEvent.getPos().getY(), blockEvent.getPos().getZ(), 64.0D, level.dimension(), new ClientboundBlockEventPacket(blockEvent.getPos(), blockEvent.getBlock(), blockEvent.getParamA(), blockEvent.getParamB()));
-
-        if(rangeCheck(blockEvent.getPos(), pos, range))
+        if(level.shouldTickBlocksAt(ChunkPos.asLong(blockEvent.pos())))
         {
-          addBlockOutline(blockEvent.getPos());
-          stepped = true;
+          if(!level.doBlockEvent(blockEvent))
+            continue;
+
+          level.server.getPlayerList().broadcast(null, blockEvent.pos().getX(), blockEvent.pos().getY(), blockEvent.pos().getZ(), 64.0D, level.dimension(), new ClientboundBlockEventPacket(blockEvent.pos(), blockEvent.block(), blockEvent.paramA(), blockEvent.paramB()));
+
+          if(rangeCheck(blockEvent.pos(), pos, range))
+          {
+            addBlockOutline(blockEvent.pos());
+            stepped = true;
+          }
+          continue;
         }
+        level.blockEventsToReschedule.add(blockEvent);
       }
       if(stepped)
         executed_steps ++;
@@ -53,11 +63,13 @@ public class BlockEventQueue extends TickingQueue
 
   @Override
   public void end()
-  {}
+  {
+    level.blockEvents.addAll((Collection<BlockEventData>)level.blockEventsToReschedule);
+  }
 
   @Override
   public boolean cantStep()
   {
-    return level.blockEvents.size() == 0;
+    return level.blockEvents.isEmpty();
   }
 }

@@ -111,14 +111,9 @@ public class ScheduledTickQueue<T> extends TickingQueue
   public Pair<Integer, Boolean> stepVanilla(int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
-    while(executed_steps < count)
+    while(executed_steps < count && !tickList.currentlyTicking.isEmpty())
     {
       TickNextTickData<T> tick = tickList.currentlyTicking.poll();
-      if(tick == null)
-      {
-        exhausted = true;
-        return new Pair<Integer, Boolean>(executed_steps, true);
-      }
 
       if(level.isPositionTickingWithEntitiesLoaded(tick.pos))
       {
@@ -138,7 +133,7 @@ public class ScheduledTickQueue<T> extends TickingQueue
       if(currentMode == PRIORITY)
       {
         TickNextTickData<T> nextTick = tickList.currentlyTicking.peek();
-        if(nextTick != null && nextTick.priority != tick.priority)
+        if(nextTick == null || nextTick.priority != tick.priority)
           executed_steps ++;
       }
     }
@@ -170,7 +165,7 @@ public class ScheduledTickQueue<T> extends TickingQueue
       if(currentMode == PRIORITY)
       {
         TickEntry<T> nextTick = ticks.get(lithium_scheduled_tick_step_index + 1);
-        if(nextTick != null && nextTick.priority != tick.priority)
+        if(nextTick == null || nextTick.priority != tick.priority)
           executed_steps ++;
       }
     }
