@@ -6,6 +6,8 @@ This mod uses [Fallen's fabric mod template](https://github.com/Fallen-Breath/fa
 
 A carpet extension that allows you to freeze and step to any specific tick phase, as well as step through tile ticks, fluid ticks, block events, entities, and block entities individually. **You need it on your client to see highlights for queueStep!**
 
+**Temporarily all dimensions have independent tick step. Support for both non-independent tick step and dimension-specific tick rate is planned.**
+
 ## Carpet rules
 
 This mod uses carpet rules for its configuration options. For how to use the text formatting, search for "`format(components, ...)`" in [Auxiliary.md](https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md). For calculating the color code for `subtickHighlightColor`, you can run for example `/script run 0x00FF00` and it'll output the integer value.
