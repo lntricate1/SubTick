@@ -4,15 +4,18 @@
   "version": "${version}",
 
   "name": "SubTick",
-  "description": "",
+  "description": "A carpet extension allowing for finer tick step control.",
   "authors": [
     "lntricate"
   ],
+  "contributors": [
+    "SpaceWalker"
+  ],
   "contact": {
-    "homepage": "https://github.com/lntricate1/SubTick",
     "sources": "https://github.com/lntricate1/SubTick"
   },
 
+  "license": "LGPLv3",
   "icon": "assets/subtick/icon.png",
 
   "environment": "*",
@@ -37,5 +40,13 @@
     "fabricloader": ">=0.11.4",
     "minecraft": "${minecraft_dependency}",
     "carpet": "${carpet_dependency}"
+  },
+
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.discord": "https://discord.gg/vPyUBcdmZV"
+      }
+    }
   }
 }
