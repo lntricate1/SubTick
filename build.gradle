@@ -1,7 +1,7 @@
 plugins {
   id 'maven-publish'
   id 'fabric-loom' version '0.11-SNAPSHOT' apply false
-  id 'com.replaymod.preprocess' version '897c4096e2'
+  id 'com.replaymod.preprocess' version 'e1050f4d72'
 }
 
 preprocess {

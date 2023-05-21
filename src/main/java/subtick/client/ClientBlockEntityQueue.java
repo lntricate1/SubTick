@@ -35,6 +35,8 @@ public class ClientBlockEntityQueue
     while(iterator.hasNext())
     {
       TickingBlockEntity be = iterator.next();
+      if(be.getPos() == null)
+        continue;
       for(BlockPos pos : poses)
         if(be.getPos().equals(pos))
         {

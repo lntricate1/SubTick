@@ -42,10 +42,11 @@ public class BlockEntityQueue extends TickingQueue
     while(executed_steps < count && block_entity_iterator.hasNext())
     {
       TickingBlockEntity ticker = block_entity_iterator.next();
-      if(rangeCheck(ticker.getPos(), pos, range))
+      BlockPos tpos = ticker.getPos();
+      if(tpos != null && rangeCheck(tpos, pos, range))
       {
-        addBlockOutline(ticker.getPos());
-        executed_poses.add(ticker.getPos());
+        addBlockOutline(tpos);
+        executed_poses.add(tpos);
         executed_steps ++;
       }
 
