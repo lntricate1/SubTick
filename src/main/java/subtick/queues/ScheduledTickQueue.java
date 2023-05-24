@@ -163,11 +163,8 @@ public class ScheduledTickQueue<T> extends TickingQueue
       }
 
       if(currentMode == PRIORITY)
-      {
-        TickEntry<T> nextTick = ticks.get(lithium_scheduled_tick_step_index + 1);
-        if(nextTick == null || nextTick.priority != tick.priority)
+        if(lithium_scheduled_tick_step_index == ticksSize || ticks.get(lithium_scheduled_tick_step_index + 1).priority != tick.priority)
           executed_steps ++;
-      }
     }
     return Pair.of(executed_steps, exhausted = lithium_scheduled_tick_step_index == ticksSize);
   }
