@@ -44,8 +44,12 @@ dependencies {
   include "com.github.LlamaLad7:MixinExtras:0.1.1"
   // mods
   modImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
-  modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
-  modImplementation "maven.modrinth:lithium:${project.lithium_version}"
+  if (project.hasProperty('g4mespeed_version')) {
+    modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
+  }
+  if (project.hasProperty('lithium_version')) {
+    modImplementation "maven.modrinth:lithium:${project.lithium_version}"
+  }
 }
 
 loom {
