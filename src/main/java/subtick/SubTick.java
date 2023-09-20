@@ -2,29 +2,37 @@ package subtick;
 
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
-import carpet.utils.Messenger;
+import carpet.CarpetSettings;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import subtick.commands.TickCommand;
 import subtick.interfaces.ILevel;
-import subtick.queues.TickingQueue;
 import subtick.queues.BlockEntityQueue;
 import subtick.queues.BlockEventQueue;
 import subtick.queues.EntityQueue;
 import subtick.queues.ScheduledTickQueue;
+import subtick.util.Translations;
 import subtick.commands.PhaseCommand;
 import subtick.commands.QueueCommand;
 
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+//#if MC >= 11903
+//$$ import net.minecraft.commands.CommandBuildContext;
+//#endif
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 
 public class SubTick implements CarpetExtension, ModInitializer
 {
+  public static final Logger LOGGER = LogManager.getLogger();
+
   public static final String MOD_ID = "subtick";
   public static String MOD_NAME = "";
   public static String MOD_VERSION = "";
@@ -43,6 +51,9 @@ public class SubTick implements CarpetExtension, ModInitializer
     MOD_NAME = metadata.getName();
     MOD_VERSION = metadata.getVersion().getFriendlyString();
     CarpetServer.settingsManager.parseSettingsClass(Settings.class);
+    //#if MC < 11901
+    Translations.update(CarpetSettings.language.equalsIgnoreCase("none") ? "en_us" : CarpetSettings.language);
+    //#endif
 
     Queues.registerQueue("blockTick", ScheduledTickQueue::block);
     Queues.registerQueue("fluidTick", ScheduledTickQueue::fluid);
@@ -52,48 +63,20 @@ public class SubTick implements CarpetExtension, ModInitializer
   }
 
   @Override
+  //#if MC >= 11903
+  //$$ public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, final CommandBuildContext context) {
+  //#else
   public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
+  //#endif
     TickCommand.register(dispatcher);
     PhaseCommand.register(dispatcher);
     QueueCommand.register(dispatcher);
   }
 
-  public static String t(String str)
+  @Override
+  public Map<String, String> canHasTranslations(String lang)
   {
-    return Settings.subtickTextFormat + " " + str;
-  }
-
-  public static String n(String str)
-  {
-    return Settings.subtickNumberFormat + " " + str;
-  }
-
-  public static String n(int x)
-  {
-    return Settings.subtickNumberFormat + " " + x;
-  }
-
-  public static String p(TickPhase phase)
-  {
-    return Settings.subtickPhaseFormat + " " + phase.getName();
-  }
-
-  public static String p(TickingQueue queue, int count)
-  {
-    return Settings.subtickPhaseFormat + " " + queue.getName(count);
-  }
-
-  public static Component d(Level level)
-  {
-    ResourceLocation location = level.dimension().location();
-    return Messenger.c(
-      Settings.subtickDimensionFormat + " " + location.getPath().substring(0, 1).toUpperCase() + location.getPath().substring(1),
-      "^" + Settings.subtickDimensionFormat + " " + location.toString());
-  }
-
-  public static String err(String str)
-  {
-    return Settings.subtickErrorFormat + " " + str;
+    return Translations.getTranslationFromResourcePath(lang);
   }
 
   // The order can be different in different versions of the game...
@@ -118,6 +101,11 @@ public class SubTick implements CarpetExtension, ModInitializer
   public static TickHandler getTickHandler(CommandContext<CommandSourceStack> c)
   {
     return getTickHandler(c.getSource().getLevel());
+  }
+
+  public static TickHandler getTickHandler(CommandSourceStack source)
+  {
+    return getTickHandler(source.getLevel());
   }
 
   public static TickHandler getTickHandler(Level level)

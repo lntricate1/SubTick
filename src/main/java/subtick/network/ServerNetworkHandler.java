@@ -6,7 +6,6 @@ import carpet.CarpetSettings;
 import carpet.helpers.TickSpeed;
 import carpet.network.CarpetClient;
 import carpet.network.ClientNetworkHandler;
-import carpet.utils.Messenger;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
@@ -19,8 +18,8 @@ import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
-import subtick.SubTick;
 import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
+import subtick.util.Translations;
 
 public class ServerNetworkHandler
 {
@@ -53,7 +52,7 @@ public class ServerNetworkHandler
     }
     catch(IllegalArgumentException e)
     {
-      Messenger.m(actor, SubTick.err("Highlights not sent because packet size exceeds maximum. Step less at a time to see highlights."));
+      Translations.m(actor, "queueCommand.err.packetSize", actor.getLevel());
     }
   }
 
@@ -82,7 +81,7 @@ public class ServerNetworkHandler
 
     for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
     {
-      if(player.level != level) continue;
+      if(player.getLevel() != level) continue;
 
       sendNbt(player, tag, actor);
     }
@@ -95,7 +94,7 @@ public class ServerNetworkHandler
 
     for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
     {
-      if(player.level != level) continue;
+      if(player.getLevel() != level) continue;
 
       sendNbt(player, tag);
     }

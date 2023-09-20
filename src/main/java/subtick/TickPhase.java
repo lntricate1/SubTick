@@ -8,20 +8,22 @@ import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
+import carpet.utils.Translations;
+
 public enum TickPhase
 {
-  UNKNOWN          (null              , null),
-  WORLD_BORDER     ("worldBorder"     , "World Border"),
-  WEATHER          ("weather"         , "Weather"),
-  TIME             ("time"            , "Time"),
-  BLOCK_TICK       ("blockTick"       , "Block Tick"),
-  FLUID_TICK       ("fluidTick"       , "Fluid Tick"),
-  RAID             ("raid"            , "Raid"),
-  CHUNK            ("chunk"           , "Chunk"),
-  BLOCK_EVENT      ("blockEvent"      , "Block Event"),
-  ENTITY           ("entity"          , "Entity"),
-  BLOCK_ENTITY     ("blockEntity"     , "Block Entity"),
-  ENTITY_MANAGEMENT("entityManagement", "Entity Management");
+  UNKNOWN          (null),
+  WORLD_BORDER     ("worldBorder"),
+  WEATHER          ("weather"),
+  TIME             ("time"),
+  BLOCK_TICK       ("blockTick"),
+  FLUID_TICK       ("fluidTick"),
+  RAID             ("raid"),
+  CHUNK            ("chunk"),
+  BLOCK_EVENT      ("blockEvent"),
+  ENTITY           ("entity"),
+  BLOCK_ENTITY     ("blockEntity"),
+  ENTITY_MANAGEMENT("entityManagement");
 
   private static final TickPhase[] BY_ID;
   private static final Map<String, TickPhase> BY_COMMAND_KEY;
@@ -49,14 +51,12 @@ public enum TickPhase
   }
 
   private final String commandKey;
-  private final String name;
 
   private int id = -1;
 
-  private TickPhase(String commandKey, String name)
+  private TickPhase(String commandKey)
   {
     this.commandKey = commandKey;
-    this.name = name;
   }
 
   @Override
@@ -76,7 +76,7 @@ public enum TickPhase
 
   public String getName()
   {
-    return name;
+    return Translations.tr("subtick.tickPhase." + commandKey);
   }
 
   public boolean exists()

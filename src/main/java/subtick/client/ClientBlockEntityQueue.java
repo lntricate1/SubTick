@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.entity.TickingBlockEntity;
 public class ClientBlockEntityQueue
 {
   private static boolean stepping;
-  private static HashSet<TickingBlockEntity> ticked_block_entities = new HashSet<>();
+  private static final HashSet<TickingBlockEntity> ticked_block_entities = new HashSet<>();
 
   private static void start(ClientLevel level)
   {
@@ -47,7 +47,7 @@ public class ClientBlockEntityQueue
             be.tick();
             ticked_block_entities.add(be);
           }
-          return;
+          break;
         }
     }
   }
@@ -72,7 +72,7 @@ public class ClientBlockEntityQueue
     }
 
     level.tickingBlockEntities = false;
-    ticked_block_entities = new HashSet<>();
+    ticked_block_entities.clear();
     return true;
   }
 }

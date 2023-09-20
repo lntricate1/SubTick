@@ -65,9 +65,20 @@ public abstract class TickingQueue
     return phase;
   }
 
+  @Deprecated
   public String getName(int count)
   {
     return currentMode.getName(count);
+  }
+
+  public String getName()
+  {
+    return currentMode.getName();
+  }
+
+  public String getNamePlural()
+  {
+    return currentMode.getNamePlural();
   }
 
   public static boolean rangeCheck(BlockPos a, BlockPos b, long range)

@@ -47,10 +47,7 @@ public class ClientTickHandler
 
   public static boolean shouldTick()
   {
-    if(!frozen)
-      return true;
-
-    return stepping;
+    return !frozen || stepping;
   }
 
   public static void onTick(ClientLevel level)

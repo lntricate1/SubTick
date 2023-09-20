@@ -12,7 +12,7 @@ public class SubtickModule implements GSIModule
   {
     manager.runOnServer(serverManager ->
     {
-      serverManager.getModule(GSTpsModule.class).sPrettySand.setValue(GSTpsModule.PRETTY_SAND_DISABLED);
+      serverManager.getModule(GSTpsModule.class).sPrettySand.set(GSTpsModule.PRETTY_SAND_DISABLED);
       serverManager.getModule(GSTpsModule.class).sPrettySand.setEnabledInGui(false);
     });
   }

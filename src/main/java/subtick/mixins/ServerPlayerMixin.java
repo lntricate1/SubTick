@@ -26,6 +26,6 @@ public class ServerPlayerMixin
   @Inject(method = "triggerDimensionChangeTriggers", at = @At("RETURN"))
   private void changeDimension2(ServerLevel origin, CallbackInfo ci)
   {
-    ServerNetworkHandler.updateFrozenStateToConnectedPlayer((ServerPlayer)(Object)this, SubTick.getTickHandler(((ServerPlayer)(Object)this).level).frozen);
+    ServerNetworkHandler.updateFrozenStateToConnectedPlayer((ServerPlayer)(Object)this, SubTick.getTickHandler(((ServerPlayer)(Object)this).getLevel()).frozen);
   }
 }

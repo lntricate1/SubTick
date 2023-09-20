@@ -10,8 +10,19 @@ public class TickingMode
     this.nameMultiple = nameMultiple;
   }
 
+  @Deprecated
   public String getName(int count)
   {
     return count == 1 ? name : nameMultiple;
+  }
+
+  public String getName()
+  {
+    return name;
+  }
+
+  public String getNamePlural()
+  {
+    return nameMultiple;
   }
 }

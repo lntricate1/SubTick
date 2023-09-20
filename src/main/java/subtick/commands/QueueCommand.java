@@ -2,7 +2,6 @@ package subtick.commands;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.commands.CommandSourceStack;
@@ -42,47 +41,47 @@ public class QueueCommand
          }}.toArray(new String[0]), b))
           .then(argument("range", integer(-1, 46340)).suggests((c, b) -> suggest(new String[]{"-1", "32"}, b))
             .then(literal("force")
-              .executes((c) -> step(c, getString(c, "queue"), "", getInteger(c, "count"), getInteger(c, "range"), true))
+              .executes((c) -> step(c.getSource(), getString(c, "queue"), "", getInteger(c, "count"), getInteger(c, "range"), true))
             )
-            .executes((c) -> step(c, getString(c, "queue"), "", getInteger(c, "count"), getInteger(c, "range"), false))
+            .executes((c) -> step(c.getSource(), getString(c, "queue"), "", getInteger(c, "count"), getInteger(c, "range"), false))
           )
           .then(literal("force")
-            .executes((c) -> step(c, getString(c, "queue"), "", getInteger(c, "count"), Settings.subtickDefaultRange, true))
+            .executes((c) -> step(c.getSource(), getString(c, "queue"), "", getInteger(c, "count"), Settings.subtickDefaultRange, true))
           )
-          .executes((c) -> step(c, getString(c, "queue"), "", getInteger(c, "count"), Settings.subtickDefaultRange, false))
+          .executes((c) -> step(c.getSource(), getString(c, "queue"), "", getInteger(c, "count"), Settings.subtickDefaultRange, false))
         )
         .then(argument("mode", word())
           .then(argument("count", integer(1)).suggests((c, b) -> suggest(new String[]{"1"}, b))
             .then(argument("range", integer(-1, 46340)).suggests((c, b) -> suggest(new String[]{"-1", "32"}, b))
               .then(literal("force")
-                .executes((c) -> step(c, getString(c, "queue"), getString(c, "mode"), getInteger(c, "count"), getInteger(c, "range"), true))
+                .executes((c) -> step(c.getSource(), getString(c, "queue"), getString(c, "mode"), getInteger(c, "count"), getInteger(c, "range"), true))
               )
-              .executes((c) -> step(c, getString(c, "queue"), getString(c, "mode"), getInteger(c, "count"), getInteger(c, "range"), false))
+              .executes((c) -> step(c.getSource(), getString(c, "queue"), getString(c, "mode"), getInteger(c, "count"), getInteger(c, "range"), false))
             )
             .then(literal("force")
-              .executes((c) -> step(c, getString(c, "queue"), getString(c, "mode"), getInteger(c, "count"), Settings.subtickDefaultRange, true))
+              .executes((c) -> step(c.getSource(), getString(c, "queue"), getString(c, "mode"), getInteger(c, "count"), Settings.subtickDefaultRange, true))
             )
-            .executes((c) -> step(c, getString(c, "queue"), getString(c, "mode"), getInteger(c, "count"), Settings.subtickDefaultRange, false))
+            .executes((c) -> step(c.getSource(), getString(c, "queue"), getString(c, "mode"), getInteger(c, "count"), Settings.subtickDefaultRange, false))
           )
           .then(literal("force")
-            .executes((c) -> step(c, getString(c, "queue"), getString(c, "mode"), 1, Settings.subtickDefaultRange, true))
+            .executes((c) -> step(c.getSource(), getString(c, "queue"), getString(c, "mode"), 1, Settings.subtickDefaultRange, true))
           )
-          .executes((c) -> step(c, getString(c, "queue"), getString(c, "mode"), 1, Settings.subtickDefaultRange, false))
+          .executes((c) -> step(c.getSource(), getString(c, "queue"), getString(c, "mode"), 1, Settings.subtickDefaultRange, false))
         )
         .then(literal("force")
-          .executes((c) -> step(c, getString(c, "queue"), "", 1, Settings.subtickDefaultRange, true))
+          .executes((c) -> step(c.getSource(), getString(c, "queue"), "", 1, Settings.subtickDefaultRange, true))
         )
-        .executes((c) -> step(c, getString(c, "queue"), "", 1, Settings.subtickDefaultRange, false))
+        .executes((c) -> step(c.getSource(), getString(c, "queue"), "", 1, Settings.subtickDefaultRange, false))
       )
     );
   }
 
-  private static int step(CommandContext<CommandSourceStack> c, String commandKey, String modeKey, int count, int range, boolean force) throws CommandSyntaxException
+  private static int step(CommandSourceStack c, String commandKey, String modeKey, int count, int range, boolean force) throws CommandSyntaxException
   {
     //#if MC >= 11904
-    //$$ SubTick.getTickHandler(c).queues.schedule(c, commandKey, modeKey, count, BlockPos.containing(c.getSource().getPosition()), range, force);
+    //$$ SubTick.getTickHandler(c).queues.schedule(c, commandKey, modeKey, count, BlockPos.containing(c.getPosition()), range, force);
     //#else
-    SubTick.getTickHandler(c).queues.schedule(c, commandKey, modeKey, count, new BlockPos(c.getSource().getPosition()), range, force);
+    SubTick.getTickHandler(c).queues.schedule(c, commandKey, modeKey, count, new BlockPos(c.getPosition()), range, force);
     //#endif
     return Command.SINGLE_SUCCESS;
   }

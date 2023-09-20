@@ -27,7 +27,7 @@ import subtick.interfaces.IEntity;
 @Mixin(ClientNetworkHandler.class)
 public class ClientNetworkHandlerMixin
 {
-  @Shadow private static Map<String, BiConsumer<AbstractClientPlayer, Tag>> dataHandlers;
+  @Shadow(remap = false) private static Map<String, BiConsumer<AbstractClientPlayer, Tag>> dataHandlers;
 
   @Inject(method = "<clinit>", at = @At("TAIL"))
   private static void addDataHandlers(CallbackInfo ci)

@@ -1,0 +1,2 @@
+carpet.helpers.TickSpeed carpet.helpers.ServerTickRateManager
+net.minecraft.server.level.ServerPlayer getLevel() serverLevel()

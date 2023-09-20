@@ -2,10 +2,10 @@ apply plugin: 'maven-publish'
 apply plugin: 'fabric-loom'
 apply plugin: 'com.replaymod.preprocess'
 
-int mcVersion = 1
+int mcVersion = project.mcVersion
 
 preprocess {
-  mcVersion = vars.get()["MC"]
+  // mcVersion = vars.get()["MC"]
   tabIndentation = false
 }
 
@@ -44,41 +44,32 @@ dependencies {
   include "com.github.LlamaLad7:MixinExtras:0.1.1"
   // mods
   modImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
-  if (project.hasProperty('g4mespeed_version')) {
-    modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
-  }
-  if (project.hasProperty('lithium_version')) {
-    modImplementation "maven.modrinth:lithium:${project.lithium_version}"
-  }
+  modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
+  modImplementation "maven.modrinth:lithium:${project.lithium_version}"
+}
+
+JavaVersion JAVA_COMPATIBILITY
+if (mcVersion >= 11800) {
+  JAVA_COMPATIBILITY = JavaVersion.VERSION_17
+}
+else if (mcVersion >= 11700) {
+  JAVA_COMPATIBILITY = JavaVersion.VERSION_16
+}
+else {
+  JAVA_COMPATIBILITY = JavaVersion.VERSION_1_8
 }
 
 loom {
   runConfigs.all {
-    runDir 'run'
+    runDir '../../run'
     vmArgs '-Dmixin.debug.export=true'
     ideConfigGenerated true
   }
-}
-
-loom {
   accessWidenerPath = file("src/main/resources/subtick.accesswidener")
 }
 
 remapJar {
   remapperIsolation = true
-}
-
-if (mcVersion >= 11800) {
-  sourceCompatibility = JavaVersion.VERSION_17
-  targetCompatibility = JavaVersion.VERSION_17
-}
-else if (mcVersion >= 11700) {
-  sourceCompatibility = JavaVersion.VERSION_16
-  targetCompatibility = JavaVersion.VERSION_16
-}
-else {
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 String versionSuffix = ''
@@ -89,8 +80,8 @@ if (System.getenv("BUILD_RELEASE") != "true") {
 String fullModVersion = project.mod_version + versionSuffix
 
 version = 'v' + fullModVersion
-group = project.parent.maven_group
-archivesBaseName = project.parent.archives_base_name + '-mc' + project.minecraft_version
+group = project.maven_group
+archivesBaseName = project.archives_base_name + '-mc' + project.minecraft_version
 
 processResources {
   inputs.property "version", fullModVersion
@@ -103,12 +94,16 @@ processResources {
     ]
     expand valueMap
   }
+
+  filesMatching("subtick.mixins.json") {
+    expand "compatibility_level": "JAVA_${JAVA_COMPATIBILITY.ordinal() + 1}"
+  }
 }
 
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
   options.encoding = "UTF-8"
   options.compilerArgs << "-Xlint:deprecation" << "-Xlint:removal" << "-Xlint:unchecked"
-  options.warnings = false
+  // options.warnings = false
 }
 
 java {
@@ -119,8 +114,8 @@ java {
 }
 
 jar {
-  from("../../LICENSE") {
-    rename {it}
+  from(rootProject.file("LICENSE")) {
+    rename {"${it}_${project.archives_base_name}"}
   }
 }
 

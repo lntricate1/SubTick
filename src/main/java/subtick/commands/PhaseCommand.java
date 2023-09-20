@@ -1,7 +1,6 @@
 package subtick.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.commands.CommandSourceStack;
 
@@ -25,20 +24,20 @@ public class PhaseCommand
     dispatcher.register(
       literal("phaseStep")
       .then(argument("count", integer(1))
-        .executes((c) -> stepCount(c, getInteger(c, "count")))
+        .executes((c) -> stepCount(c.getSource(), getInteger(c, "count")))
       )
       .then(argument("phase", word())
         .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
         .then(literal("force")
-          .executes((c) -> stepToPhase(c, TickPhase.byCommandKey(getString(c, "phase")), true))
+          .executes((c) -> stepToPhase(c.getSource(), TickPhase.byCommandKey(getString(c, "phase")), true))
         )
-        .executes((c) -> stepToPhase(c, TickPhase.byCommandKey(getString(c, "phase")), false))
+        .executes((c) -> stepToPhase(c.getSource(), TickPhase.byCommandKey(getString(c, "phase")), false))
       )
-      .executes((c) -> stepCount(c, 1))
+      .executes((c) -> stepCount(c.getSource(), 1))
     );
   }
 
-  private static int stepCount(CommandContext<CommandSourceStack> c, int count)
+  private static int stepCount(CommandSourceStack c, int count)
   {
     TickHandler handler = SubTick.getTickHandler(c);
     TickPhase phase = handler.current_phase.next(count);
@@ -46,7 +45,7 @@ public class PhaseCommand
     return TickCommand.step(c, ticks, phase);
   }
 
-  private static int stepToPhase(CommandContext<CommandSourceStack> c, TickPhase phase, boolean force)
+  private static int stepToPhase(CommandSourceStack c, TickPhase phase, boolean force)
   {
     TickHandler handler = SubTick.getTickHandler(c);
     if(!phase.isPosteriorTo(handler.current_phase) && force)

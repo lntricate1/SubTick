@@ -1,15 +1,12 @@
 package subtick;
 
-import static subtick.SubTick.d;
-import static subtick.SubTick.err;
-
 import net.minecraft.server.level.ServerLevel;
 
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
-import carpet.utils.Messenger;
 
 import subtick.network.ServerNetworkHandler;
+import subtick.util.Translations;
 
 public class TickHandler
 {
@@ -124,29 +121,29 @@ public class TickHandler
     }
   }
 
-  public boolean canStep(CommandContext<CommandSourceStack> c, int count, TickPhase phase)
+  public boolean canStep(CommandSourceStack c, int count, TickPhase phase)
   {
     if(!frozen)
     {
-      Messenger.m(c.getSource(), d(level), err(" cannot step because it's not frozen"));
+      Translations.m(c, "tickCommand.step.err.notfrozen", level);
       return false;
     }
 
     if(stepping)
     {
-      Messenger.m(c.getSource(), d(level), err(" cannot step because it's already tick stepping"));
+      Translations.m(c, "tickCommand.step.err.stepping", level);
       return false;
     }
 
     if(count == 0 && phase.isPriorTo(current_phase))
     {
-      Messenger.m(c.getSource(), d(level), err(" cannot step to an earlier phase in the same tick"));
+      Translations.m(c, "tickCommand.step.err.backwards", level);
       return false;
     }
 
     if(queues.scheduled)
     {
-      Messenger.m(c.getSource(), d(level), err(" cannot step because it's already queueStepping"));
+      Translations.m(c, "tickCommand.step.err.qstepping", level);
       return false;
     }
 

@@ -5,22 +5,15 @@ import java.util.Map;
 import java.util.function.Function;
 
 import com.mojang.brigadier.LiteralMessage;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
-import carpet.utils.Messenger;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import org.apache.commons.lang3.tuple.Pair;
 import subtick.queues.TickingQueue;
-
-import static subtick.SubTick.t;
-import static subtick.SubTick.n;
-import static subtick.SubTick.p;
-import static subtick.SubTick.d;
-import static subtick.SubTick.err;
+import subtick.util.Translations;
 
 public class Queues
 {
@@ -67,7 +60,7 @@ public class Queues
     return queue;
   }
 
-  public void schedule(CommandContext<CommandSourceStack> c, String commandKey, String modeKey, int count, BlockPos pos, int range, boolean force) throws CommandSyntaxException
+  public void schedule(CommandSourceStack c, String commandKey, String modeKey, int count, BlockPos pos, int range, boolean force) throws CommandSyntaxException
   {
     TickingQueue newQueue = byCommandKey(commandKey);
     if(canStep(newQueue))
@@ -89,7 +82,7 @@ public class Queues
 
     queue = newQueue;
     queue.setMode(modeKey);
-    this.actor = c.getSource();
+    this.actor = c;
     this.count = count;
     this.pos = pos;
     this.range = range;
@@ -111,11 +104,19 @@ public class Queues
       stepping = true;
     }
 
-    Pair<Integer, Boolean> pair = queue.step(count, pos, range);
+    // Protects program state when stepping into an update suppressor
+    try
+    {
+      Pair<Integer, Boolean> pair = queue.step(count, pos, range);
+      queue.sendHighlights(actor);
+      sendFeedback(pair.getLeft(), pair.getRight());
+    }
+    catch(Exception e)
+    {
+      Translations.m(actor, "queueCommand.err.crash", level, queue);
+    }
 
-    queue.sendHighlights(actor);
     queue.emptyHighlights();
-    sendFeedback(pair.getLeft(), pair.getRight());
 
     prev_queue = queue;
     scheduled = false;
@@ -138,14 +139,20 @@ public class Queues
   private void sendFeedback(int steps, boolean exhausted)
   {
     if(steps == 0)
-      Messenger.m(actor, d(level), err(" "), p(queue, 1), err(" queue exhausted"));
-    else if(exhausted)
-      Messenger.m(actor, d(level), t(" stepped"), n(" " + steps + " "), p(queue, steps), t(" (queue exhausted)"));
+      Translations.m(actor, "queueCommand.err.exhausted", level, queue);
+    else if(steps == 1)
+      if(exhausted)
+        Translations.m(actor, "queueCommand.success.single.exhausted", level, queue, steps);
+      else
+        Translations.m(actor, "queueCommand.success.single", level, queue, steps);
     else
-      Messenger.m(actor, d(level), t(" stepped"), n(" " + steps + " "), p(queue, steps));
+      if(exhausted)
+        Translations.m(actor, "queueCommand.success.multiple.exhausted", level, queue, steps);
+      else
+        Translations.m(actor, "queueCommand.success.multiple", level, queue, steps);
   }
 
-  public boolean canStep(CommandContext<CommandSourceStack> c, TickingQueue queue)
+  public boolean canStep(CommandSourceStack c, TickingQueue queue)
   {
     if(!handler.canStep(c, 0, queue.getPhase())) return false;
 
@@ -154,7 +161,7 @@ public class Queues
 
     if(queue.cantStep())
     {
-      Messenger.m(c.getSource(), d(level), err(" "), p(queue.getPhase()), err(" queue exhausted"));
+      Translations.m(c, "queueCommand.err.exhausted", level, queue);
       return false;
     }
 

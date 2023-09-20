@@ -1,0 +1,57 @@
+{
+  "carpet.category.subtick": "SubTick",
+
+  "carpet.rule.subtickDefaultPhase.desc": "The default tick phase to freeze at and step to",
+
+  "carpet.rule.subtickTextFormat.desc": "Text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+
+  "carpet.rule.subtickNumberFormat.desc": "Text format for numbers in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+
+  "carpet.rule.subtickPhaseFormat.desc": "Text format for phases in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+
+  "carpet.rule.subtickDimensionFormat.desc": "Text format for dimensions in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+
+  "carpet.rule.subtickErrorFormat.desc": "Error text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+
+  "carpet.rule.subtickHighlightColor.desc": "Color for subtick queueStep highlighting",
+
+  "carpet.rule.subtickDefaultRange.desc": "Default range for queueStep",
+
+
+  "subtick.tickPhase.worldBorder":      "World Border",
+  "subtick.tickPhase.weather":          "Weather",
+  "subtick.tickPhase.time":             "Time Increment",
+  "subtick.tickPhase.blockTick":        "Block Tick",
+  "subtick.tickPhase.fluidTick":        "Fluid Tick",
+  "subtick.tickPhase.raid":             "Raid",
+  "subtick.tickPhase.chunk":            "Chunk Management",
+  "subtick.tickPhase.blockEvent":       "Block Event",
+  "subtick.tickPhase.entity":           "Entity",
+  "subtick.tickPhase.blockEntity":      "Block Entity",
+  "subtick.tickPhase.entityManagement": "Entity Management",
+
+
+  "subtick.feedback.tickCommand.when.frozen":   "{dim} is frozen at {phase} phase",
+  "subtick.feedback.tickCommand.when.unfrozen": "{dim} is unfrozen at {phase} phase",
+
+  "subtick.feedback.tickCommand.freeze.err": "{dim} is already frozen",
+  "subtick.feedback.tickCommand.freeze.success": "{dim} freezing at {phase} phase",
+
+  "subtick.feedback.tickCommand.unfreeze.err": "{dim} is not frozen",
+  "subtick.feedback.tickCommand.unfreeze.success": "{dim} unfreezing",
+
+  "subtick.feedback.tickCommand.step.err.notfrozen": "{dim} cannot step because it's not frozen",
+  "subtick.feedback.tickCommand.step.err.stepping":  "{dim} cannot step because it's already stepping",
+  "subtick.feedback.tickCommand.step.err.qstepping": "{dim} cannot step because it's already queueStepping",
+  "subtick.feedback.tickCommand.step.err.backwards": "{dim} cannot step to an earlier phase in the same tick",
+  "subtick.feedback.tickCommand.step.success.single":   "{dim} stepping {n} tick, ending at {phase} phase",
+  "subtick.feedback.tickCommand.step.success.multiple": "{dim} stepping {n} ticks, ending at {phase} phase",
+
+  "subtick.feedback.queueCommand.err.packetSize": "Highlights not sent because packet size exceeds maximum. Step less at a time to see highlights.",
+  "subtick.feedback.queueCommand.err.crash": "Crashed while stepping {queue}",
+  "subtick.feedback.queueCommand.err.exhausted": "{queue} queue exhausted",
+  "subtick.feedback.queueCommand.success.single":             "{dim} stepped {n} {queue}",
+  "subtick.feedback.queueCommand.success.single.exhausted":   "{dim} stepped {n} {queue} (queue exhausted)",
+  "subtick.feedback.queueCommand.success.multiple":           "{dim} stepped {n} {queues}",
+  "subtick.feedback.queueCommand.success.multiple.exhausted": "{dim} stepped {n} {queues} (queue exhausted)"
+}
