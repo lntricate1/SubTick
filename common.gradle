@@ -35,7 +35,7 @@ dependencies {
   minecraft "com.mojang:minecraft:${project.minecraft_version}"
   mappings loom.layered {
     mappings file("../../lithium_mappings.tiny")
-    mappings loom.officialMojangMappings()
+    officialMojangMappings()
   }
   modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
   // MixinExtras
