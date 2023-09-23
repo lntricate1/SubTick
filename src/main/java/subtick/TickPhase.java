@@ -8,7 +8,7 @@ import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
-import carpet.utils.Translations;
+import subtick.util.Translations;
 
 public enum TickPhase
 {

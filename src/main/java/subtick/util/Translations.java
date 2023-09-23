@@ -18,6 +18,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import subtick.Settings;
+import subtick.SubTick;
 import subtick.TickHandler;
 import subtick.TickPhase;
 import subtick.queues.TickingQueue;
@@ -51,13 +52,14 @@ public class Translations
         map1.put(entry.getKey().substring(7), entry.getValue());
       else
         map1.put(entry.getKey(), entry.getValue());
-    translations.put(lang.equals("en_us") ? "none" : lang, map1);
+    translations.put(lang, map1);
   }
 
-  private static String tr(String key)
+  public static String tr(String key)
   {
-    return translations.containsKey(CarpetSettings.language) ?
-      translations.get(CarpetSettings.language).getOrDefault(key, key) : key;
+    String lang = CarpetSettings.language.equals("none") ? "en_us" : CarpetSettings.language;
+    return translations.containsKey(lang) ?
+      translations.get(lang).getOrDefault(key, key) : key;
   }
 
   public static Map<String, String> getTranslationFromResourcePath(String lang)

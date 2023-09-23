@@ -25,13 +25,11 @@ public class Translations
 {
   public static Map<String, String> getTranslationFromResourcePath(String lang)
   {
-    System.out.println(lang);
     InputStream langFile = Translations.class.getClassLoader().getResourceAsStream("assets/subtick/lang/%s.json".formatted(lang));
     if(langFile == null)
     {
       return Collections.emptyMap();
     }
-    System.out.println("FILE EXISTS");
     String jsonData;
     try
     {
@@ -41,7 +39,6 @@ public class Translations
     {
       return Collections.emptyMap();
     }
-    System.out.println(jsonData);
     Gson gson = new GsonBuilder().setLenient().create();
     return gson.fromJson(jsonData, new TypeToken<Map<String, String>>(){}.getType());
   }
