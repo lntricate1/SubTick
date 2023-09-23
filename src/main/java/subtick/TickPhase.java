@@ -8,7 +8,11 @@ import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
+//#if MC >= 11901
+//$$ import carpet.utils.Translations;
+//#else
 import subtick.util.Translations;
+//#endif
 
 public enum TickPhase
 {
