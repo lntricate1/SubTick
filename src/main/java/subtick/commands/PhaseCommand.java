@@ -15,7 +15,6 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import subtick.TickHandler;
 import subtick.TickPhase;
-import subtick.SubTick;
 
 public class PhaseCommand
 {
@@ -27,7 +26,7 @@ public class PhaseCommand
         .executes((c) -> stepCount(c.getSource(), getInteger(c, "count")))
       )
       .then(argument("phase", word())
-        .suggests((c, b) -> suggest(TickPhase.getCommandKeys(), b))
+        .suggests((c, b) -> suggest(TickPhase.commandSuggestions, b))
         .then(literal("force")
           .executes((c) -> stepToPhase(c.getSource(), TickPhase.byCommandKey(getString(c, "phase")), true))
         )
@@ -39,16 +38,15 @@ public class PhaseCommand
 
   private static int stepCount(CommandSourceStack c, int count)
   {
-    TickHandler handler = SubTick.getTickHandler(c);
-    TickPhase phase = handler.current_phase.next(count);
-    int ticks = (count + handler.current_phase.getId()) / TickPhase.getCommandKeys().size();
-    return TickCommand.step(c, ticks, phase);
+    int currentPhase = TickHandler.currentPhase().phase();
+    int phase = currentPhase + count;
+    int ticks = phase/TickPhase.totalPhases;
+    return TickCommand.step(c, phase < currentPhase ? ticks + 1 : ticks, phase % TickPhase.totalPhases);
   }
 
-  private static int stepToPhase(CommandSourceStack c, TickPhase phase, boolean force)
+  private static int stepToPhase(CommandSourceStack c, int phase, boolean force)
   {
-    TickHandler handler = SubTick.getTickHandler(c);
-    if(!phase.isPosteriorTo(handler.current_phase) && force)
+    if(phase < TickHandler.currentPhase().phase() && force)
       return TickCommand.step(c, 1, phase);
     else
       return TickCommand.step(c, 0, phase);

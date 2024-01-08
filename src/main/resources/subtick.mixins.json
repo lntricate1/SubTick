@@ -4,9 +4,8 @@
   "package": "subtick.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "MinecraftServerMixin",
     "ServerLevelMixin",
-    "ServerPlayerMixin",
-    "LevelMixin",
 
     "carpet.ServerNetworkHandlerAccessor",
     "carpet.ServerNetworkHandlerMixin",
@@ -19,6 +18,7 @@
 
     "client.ClientLevelMixin",
     "client.EntityMixin",
+    "client.GuiMixin",
     "client.LevelRendererMixin"
   ],
   "injectors": {

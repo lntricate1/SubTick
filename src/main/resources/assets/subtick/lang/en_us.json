@@ -31,27 +31,38 @@
   "subtick.tickPhase.entityManagement": "Entity Management",
 
 
-  "subtick.feedback.tickCommand.when.frozen":   "{dim} is frozen at {phase} phase",
-  "subtick.feedback.tickCommand.when.unfrozen": "{dim} is unfrozen at {phase} phase",
+  "subtick.feedback.tickCommand.when.frozen":   "Server frozen at {dim} {phase} phase",
+  "subtick.feedback.tickCommand.when.unfrozen": "Server unfrozen at {dim} {phase} phase",
 
-  "subtick.feedback.tickCommand.freeze.err": "{dim} is already frozen",
-  "subtick.feedback.tickCommand.freeze.success": "{dim} freezing at {phase} phase",
+  "subtick.feedback.tickCommand.freeze.err": "Cannot freeze; already frozen",
+  "subtick.feedback.tickCommand.freeze.success": "Freezing at {dim} {phase} phase",
 
-  "subtick.feedback.tickCommand.unfreeze.err": "{dim} is not frozen",
-  "subtick.feedback.tickCommand.unfreeze.success": "{dim} unfreezing",
+  "subtick.feedback.tickCommand.unfreeze.err": "Cannot unfreeze; already not frozen",
+  "subtick.feedback.tickCommand.unfreeze.success": "Unfreezing",
 
-  "subtick.feedback.tickCommand.step.err.notfrozen": "{dim} cannot step because it's not frozen",
-  "subtick.feedback.tickCommand.step.err.stepping":  "{dim} cannot step because it's already stepping",
-  "subtick.feedback.tickCommand.step.err.qstepping": "{dim} cannot step because it's already queueStepping",
-  "subtick.feedback.tickCommand.step.err.backwards": "{dim} cannot step to an earlier phase in the same tick",
-  "subtick.feedback.tickCommand.step.success.single":   "{dim} stepping {n} tick, ending at {phase} phase",
-  "subtick.feedback.tickCommand.step.success.multiple": "{dim} stepping {n} ticks, ending at {phase} phase",
+  "subtick.feedback.tickCommand.step.err.notfrozen": "Cannot step; not frozen",
+  "subtick.feedback.tickCommand.step.err.stepping":  "Cannot step; already stepping",
+  "subtick.feedback.tickCommand.step.err.qstepping": "Cannot step; already queueStepping",
+  "subtick.feedback.tickCommand.step.err.backwards": "Cannot step to an earlier phase in the same tick",
+  "subtick.feedback.tickCommand.step.success.single":   "Stepping {n} tick, ending at {dim} {phase} phase",
+  "subtick.feedback.tickCommand.step.success.multiple": "Stepping {n} ticks, ending at {dim} {phase} phase",
+  "subtick.feedback.tickCommand.step.err.unloaded": "Tick step failed to complete; should end at {dim} {phase} phase, but that phase does not execute while the dimension is unloaded. Load {dim} to complete. Blame mojank",
 
   "subtick.feedback.queueCommand.err.packetSize": "Highlights not sent because packet size exceeds maximum. Step less at a time to see highlights.",
   "subtick.feedback.queueCommand.err.crash": "Crashed while stepping {queue}",
   "subtick.feedback.queueCommand.err.exhausted": "{queue} queue exhausted",
-  "subtick.feedback.queueCommand.success.single":             "{dim} stepped {n} {queue}",
-  "subtick.feedback.queueCommand.success.single.exhausted":   "{dim} stepped {n} {queue} (queue exhausted)",
-  "subtick.feedback.queueCommand.success.multiple":           "{dim} stepped {n} {queues}",
-  "subtick.feedback.queueCommand.success.multiple.exhausted": "{dim} stepped {n} {queues} (queue exhausted)"
+  "subtick.feedback.queueCommand.success.single":             "Stepped {n} {queue}",
+  "subtick.feedback.queueCommand.success.single.exhausted":   "Stepped {n} {queue} (queue exhausted)",
+  "subtick.feedback.queueCommand.success.multiple":           "Stepped {n} {queues}",
+  "subtick.feedback.queueCommand.success.multiple.exhausted": "Stepped {n} {queues} (queue exhausted)",
+
+  "subtick.client.align.top_left": "Top Left",
+  "subtick.client.align.top": "Top",
+  "subtick.client.align.top_right": "Top Right",
+  "subtick.client.align.left": "Left",
+  "subtick.client.align.center": "Center",
+  "subtick.client.align.right": "Right",
+  "subtick.client.align.bottom_left": "Bottom Left",
+  "subtick.client.align.bottom": "Bottom",
+  "subtick.client.align.bottom_right": "Bottom Right"
 }

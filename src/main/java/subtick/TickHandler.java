@@ -1,156 +1,176 @@
 package subtick;
 
-import net.minecraft.server.level.ServerLevel;
-
-import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
-
+import net.minecraft.server.level.ServerLevel;
 import subtick.network.ServerNetworkHandler;
 import subtick.util.Translations;
 
+/**
+ * Stores the state of the server. Has public methods for scheduling actions.
+ */
 public class TickHandler
 {
-  public final ServerLevel level;
-  public final Queues queues;
-  public long time;
+  private static CommandSourceStack actor;
+  private static boolean frozen;
+  private static boolean freezing, unfreezing;
+  private static boolean stepping;
+  private static int remainingTicks;
 
-  // Freeze
-  public boolean frozen = false;
-  public boolean freezing = false;
-  private boolean unfreezing = false;
-  private TickPhase target_phase = TickPhase.byId(0);
-  // Step
-  private boolean stepping = false;
-  private boolean in_first_stepped_phase = false;
-  private int remaining_ticks = 0;
-  public TickPhase current_phase = TickPhase.byId(0);
+  private static TickPhase targetPhase = new TickPhase(0, 0);
+  private static TickPhase currentPhase = new TickPhase(0, 0);
 
-  public TickHandler(ServerLevel level)
+  public static boolean frozen(){return frozen;}
+  public static boolean freezing(){return freezing;}
+  public static TickPhase currentPhase(){return currentPhase;}
+  public static TickPhase targetPhase(){return targetPhase;}
+
+  /**
+   * Placed in a {@link com.llamalad7.mixinextras.injector.WrapWithCondition} before each tick phase. Returns whether that phase should execute.
+   */
+  public static boolean shouldTick(ServerLevel level, int tickPhase)
   {
-    this.level = level;
-    this.time = level.getGameTime();
-    queues = new Queues(this);
-  }
+    TickPhase phase = new TickPhase(level, tickPhase);
 
-  public void tickTime()
-  {
-    time += 1L;
-  }
-
-  public boolean shouldTick(TickPhase phase)
-  {
-    // Freezing
-    if(freezing && phase == target_phase)
+    if(freezing && phase.equals(targetPhase))
     {
-      freezing = false;
-      frozen = true;
-      current_phase = phase;
-      ServerNetworkHandler.updateFrozenStateToConnectedPlayers(level, true);
+      freeze(phase);
       return false;
     }
 
-    // Normal ticking
     if(!frozen)
     {
-      current_phase = phase;
+      currentPhase = phase;
       return true;
     }
     // Everything below this is frozen logic
 
-    queues.end();
+    Queues.end();
 
-    // Unfreezing
-    if(unfreezing && phase == current_phase)
+    if(unfreezing && phase.equals(currentPhase))
     {
-      unfreezing = false;
-      frozen = false;
-      ServerNetworkHandler.updateFrozenStateToConnectedPlayers(level, false);
+      unfreeze();
       return true;
     }
 
-    if(!stepping || phase != current_phase) return false;
-    // Continues only if stepping and in current_phase
-
-    // Stepping
-    if(in_first_stepped_phase)
-      ServerNetworkHandler.updateTickPlayerActiveTimeoutToConnectedPlayers(level, remaining_ticks);
-
-    else if(phase.isFirst())
-      --remaining_ticks;
-
-    in_first_stepped_phase = false;
-    if(remaining_ticks < 1 && phase == target_phase)
-    {
-      stepping = false;
-      queues.execute();
+    if(!stepping || !phase.equals(currentPhase))
       return false;
+    // Continues only if stepping and in current phase and dim
+
+    if(remainingTicks == 0 && phase.dim() == targetPhase.dim())
+    {
+      if(phase.phase() == targetPhase.phase())
+      {
+        stepping = false;
+        Queues.execute();
+        return false;
+      }
+
+      // This block will only execute if the step has to end at a phase that doesn't currently exist
+      if(phase.phase() > targetPhase.phase())
+      {
+        // Go 2 phases back; From entityManagment to entity
+        currentPhase = new TickPhase(phase.dim(), TickPhase.ENTITY);
+        Translations.m(actor, "tickCommand.step.err.unloaded", phase);
+        return false;
+      }
     }
-    advancePhase();
+
+    if(phase.isLast())
+      remainingTicks --;
+
+    advancePhase(level);
     return true;
   }
 
-  public void advancePhase()
+  public static void advancePhase(ServerLevel level)
   {
-    current_phase = current_phase.next();
+    currentPhase = currentPhase.next(level);
   }
 
-  public void step(int ticks, TickPhase phase)
+  private static void freeze(TickPhase phase)
   {
-    stepping = true;
-    in_first_stepped_phase = true;
-    remaining_ticks = ticks;
-    target_phase = phase;
-    if(ticks != 0 || phase != current_phase)
-      queues.scheduleEnd();
+    freezing = false;
+    frozen = true;
+    currentPhase = phase;
   }
 
-  public void freeze(TickPhase phase)
+  private static void unfreeze()
   {
+    unfreezing = false;
+    frozen = false;
+  }
+
+  public static boolean scheduleFreeze(ServerLevel level, TickPhase phase)
+  {
+    if(frozen)
+      return false;
+
     freezing = true;
-    target_phase = phase;
+    targetPhase = phase;
+    ServerNetworkHandler.sendFrozen(level, phase);
+    return true;
   }
 
-  public void unfreeze()
+  public static boolean scheduleUnfreeze(ServerLevel level)
   {
-    if(freezing) freezing = false;
+    if(!frozen)
+      return false;
+
+    if(freezing)
+      freezing = false;
     else
     {
       unfreezing = true;
       stepping = false;
-      queues.scheduleEnd();
+      Queues.scheduleEnd();
+    }
+    ServerNetworkHandler.sendUnfrozen(level);
+    return true;
+  }
+
+  public static void scheduleStep(CommandSourceStack c, int ticks, TickPhase phase)
+  {
+    actor = c;
+    stepping = true;
+    remainingTicks = ticks;
+    targetPhase = phase;
+    if(ticks != 0 || !phase.equals(currentPhase))
+    {
+      Queues.scheduleEnd();
+      ServerNetworkHandler.sendTickStep(c.getLevel(), ticks, phase);
     }
   }
 
-  public boolean canStep(CommandSourceStack c, int count, TickPhase phase)
+  public static boolean canStep(CommandSourceStack c, int count, TickPhase phase)
   {
     if(!frozen)
     {
-      Translations.m(c, "tickCommand.step.err.notfrozen", level);
+      Translations.m(c, "tickCommand.step.err.notfrozen");
       return false;
     }
 
     if(stepping)
     {
-      Translations.m(c, "tickCommand.step.err.stepping", level);
+      Translations.m(c, "tickCommand.step.err.stepping");
       return false;
     }
 
-    if(count == 0 && phase.isPriorTo(current_phase))
+    if(count == 0 && phase.isPriorTo(currentPhase))
     {
-      Translations.m(c, "tickCommand.step.err.backwards", level);
+      Translations.m(c, "tickCommand.step.err.backwards");
       return false;
     }
 
-    if(queues.scheduled)
+    if(Queues.scheduled)
     {
-      Translations.m(c, "tickCommand.step.err.qstepping", level);
+      Translations.m(c, "tickCommand.step.err.qstepping");
       return false;
     }
 
     return true;
   }
 
-  public boolean canStep(int count, TickPhase phase)
+  public static boolean canStep(int count, TickPhase phase)
   {
     if(!frozen)
       return false;
@@ -158,10 +178,10 @@ public class TickHandler
     if(stepping)
       return false;
 
-    if(count == 0 && phase.isPriorTo(current_phase))
+    if(count == 0 && phase.isPriorTo(currentPhase))
       return false;
 
-    if(queues.scheduled)
+    if(Queues.scheduled)
       return false;
 
     return true;

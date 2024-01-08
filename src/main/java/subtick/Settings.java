@@ -43,12 +43,6 @@ public class Settings
   public static String subtickErrorFormat = "ir";
 
   @Rule(
-    desc = "Color for subtick queueStep highlighting",
-    category = "subtick"
-  )
-  public static int subtickHighlightColor = 0x00FF00;
-
-  @Rule(
     desc = "Default range for queueStep",
     category = "subtick"
   )

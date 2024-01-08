@@ -7,13 +7,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.world.level.Level;
 import subtick.commands.TickCommand;
-import subtick.interfaces.ILevel;
-import subtick.queues.BlockEntityQueue;
-import subtick.queues.BlockEventQueue;
-import subtick.queues.EntityQueue;
-import subtick.queues.ScheduledTickQueue;
 import subtick.util.Translations;
 import subtick.commands.PhaseCommand;
 import subtick.commands.QueueCommand;
@@ -27,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 //$$ import net.minecraft.commands.CommandBuildContext;
 //#endif
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.context.CommandContext;
 
 public class SubTick implements CarpetExtension, ModInitializer
 {
@@ -54,12 +47,6 @@ public class SubTick implements CarpetExtension, ModInitializer
     //#if MC < 11901
     Translations.update(CarpetSettings.language.equalsIgnoreCase("none") ? "en_us" : CarpetSettings.language);
     //#endif
-
-    Queues.registerQueue("blockTick", ScheduledTickQueue::block);
-    Queues.registerQueue("fluidTick", ScheduledTickQueue::fluid);
-    Queues.registerQueue("blockEvent", BlockEventQueue::new);
-    Queues.registerQueue("entity", EntityQueue::new);
-    Queues.registerQueue("blockEntity", BlockEntityQueue::new);
   }
 
   @Override
@@ -80,36 +67,21 @@ public class SubTick implements CarpetExtension, ModInitializer
   }
 
   // The order can be different in different versions of the game...
-  public static TickPhase[] getTickPhaseOrder()
-  {
-    return new TickPhase[]
-    {
-      TickPhase.WORLD_BORDER,
-      TickPhase.WEATHER,
-      TickPhase.TIME,
-      TickPhase.BLOCK_TICK,
-      TickPhase.FLUID_TICK,
-      TickPhase.RAID,
-      TickPhase.CHUNK,
-      TickPhase.BLOCK_EVENT,
-      TickPhase.ENTITY,
-      TickPhase.BLOCK_ENTITY,
-      TickPhase.ENTITY_MANAGEMENT
-    };
-  }
-
-  public static TickHandler getTickHandler(CommandContext<CommandSourceStack> c)
-  {
-    return getTickHandler(c.getSource().getLevel());
-  }
-
-  public static TickHandler getTickHandler(CommandSourceStack source)
-  {
-    return getTickHandler(source.getLevel());
-  }
-
-  public static TickHandler getTickHandler(Level level)
-  {
-    return ((ILevel)level).getTickHandler();
-  }
+  // public static TickPhase[] getTickPhaseOrder()
+  // {
+  //   return new TickPhase[]
+  //   {
+  //     TickPhase.WORLD_BORDER,
+  //     TickPhase.WEATHER,
+  //     TickPhase.TIME,
+  //     TickPhase.BLOCK_TICK,
+  //     TickPhase.FLUID_TICK,
+  //     TickPhase.RAID,
+  //     TickPhase.CHUNK,
+  //     TickPhase.BLOCK_EVENT,
+  //     TickPhase.ENTITY,
+  //     TickPhase.BLOCK_ENTITY,
+  //     TickPhase.ENTITY_MANAGEMENT
+  //   };
+  // }
 }

@@ -1,4 +1,4 @@
-package subtick.interfaces;
+package subtick.client;
 
 public interface IEntity
 {

@@ -44,3 +44,4 @@ accessible method net/minecraft/server/level/ChunkMap getChunks ()Ljava/lang/Ite
 accessible field net/minecraft/world/level/Level tickingBlockEntities Z
 accessible field net/minecraft/world/level/Level pendingBlockEntityTickers Ljava/util/List;
 accessible field net/minecraft/world/level/Level blockEntityTickers Ljava/util/List;
+accessible field net/minecraft/server/level/ServerLevel emptyTime I

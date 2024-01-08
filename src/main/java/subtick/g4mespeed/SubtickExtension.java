@@ -9,8 +9,6 @@ import com.g4mesoft.core.server.GSServerController;
 import com.g4mesoft.packet.GSIPacket;
 import com.g4mesoft.registry.GSSupplierRegistry;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import subtick.SubTick;
 
 public class SubtickExtension implements GSIExtension
@@ -21,6 +19,7 @@ public class SubtickExtension implements GSIExtension
   public static final GSVersion VERSION = decodeVersionString();
 
   public static final GSExtensionInfo INFO = new GSExtensionInfo(NAME, UID, VERSION);
+  private SubtickModule serverModule;
 
   @Override
   public GSExtensionInfo getInfo()
@@ -36,9 +35,6 @@ public class SubtickExtension implements GSIExtension
 
   @Override public void init()
   {}
-
-  @Environment(EnvType.CLIENT)
-  private SubtickModule serverModule;
 
   @Override
   public void addServerModules(GSServerController controller)

@@ -1,133 +1,130 @@
 package subtick;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
-//#if MC >= 11901
-//$$ import carpet.utils.Translations;
-//#else
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import subtick.util.Translations;
-//#endif
 
-public enum TickPhase
+public record TickPhase(int dim, int phase)
 {
-  UNKNOWN          (null),
-  WORLD_BORDER     ("worldBorder"),
-  WEATHER          ("weather"),
-  TIME             ("time"),
-  BLOCK_TICK       ("blockTick"),
-  FLUID_TICK       ("fluidTick"),
-  RAID             ("raid"),
-  CHUNK            ("chunk"),
-  BLOCK_EVENT      ("blockEvent"),
-  ENTITY           ("entity"),
-  BLOCK_ENTITY     ("blockEntity"),
-  ENTITY_MANAGEMENT("entityManagement");
-
-  private static final TickPhase[] BY_ID;
-  private static final Map<String, TickPhase> BY_COMMAND_KEY;
-
   public static final DynamicCommandExceptionType INVALID_TICK_PHASE_EXCEPTION = new DynamicCommandExceptionType(key -> new LiteralMessage("Invalid tick phase '" + key + "'"));
+  public static TickPhase INVALID = new TickPhase(-1, -1);
+  private static final List<String> dims = new ArrayList<>();
 
-  static
+  // Tick phase order, reorder this if it changes across mc versions
+  private static final List<String> commandKeys = List.of(
+    "worldBorder",
+    "weather",
+    "time",
+    "blockTick",
+    "fluidTick",
+    "raid",
+    "chunk",
+    "blockEvent",
+    "entity",
+    "blockEntity",
+    "entityManagement");
+  public static final String[] commandSuggestions = commandKeys.toArray(new String[]{});
+
+  // This one doesn't need to be changed if you change the order above
+  public static final int
+    WORLD_BORDER = commandKeys.indexOf("worldBorder"),
+    WEATHER = commandKeys.indexOf("weather"),
+    TIME = commandKeys.indexOf("time"),
+    BLOCK_TICK = commandKeys.indexOf("blockTick"),
+    FLUID_TICK = commandKeys.indexOf("fluidTick"),
+    RAID = commandKeys.indexOf("raid"),
+    CHUNK = commandKeys.indexOf("chunk"),
+    BLOCK_EVENT = commandKeys.indexOf("blockEvent"),
+    ENTITY = commandKeys.indexOf("entity"),
+    BLOCK_ENTITY = commandKeys.indexOf("blockEntity"),
+    ENTITY_MANAGEMENT = commandKeys.indexOf("entityManagement");
+  private static final int lastPhase = 10;
+  public static final int totalPhases = 11;
+
+  public static List<String> getDimensions()
   {
-    TickPhase[] values = SubTick.getTickPhaseOrder();
-    BY_ID = new TickPhase[values.length];
-    BY_COMMAND_KEY = new HashMap<>();
-
-    int id = 0;
-
-    for(TickPhase phase : values)
-    {
-      if(phase == null || phase == UNKNOWN)
-        throw new IllegalStateException("invalid tick phase " + phase + " provided in tick phase order!");
-      if(phase.id != -1)
-        throw new IllegalStateException("tick phase " + phase + " appears multiple times in tick phase order!");
-      phase.id = id++;
-      BY_ID[phase.id] = phase;
-      BY_COMMAND_KEY.put(phase.commandKey, phase);
-    }
+    return dims;
   }
 
-  private final String commandKey;
-
-  private int id = -1;
-
-  private TickPhase(String commandKey)
+  public TickPhase(ServerLevel level, int phase)
   {
-    this.commandKey = commandKey;
+    this(dims.indexOf(level.dimension().location().getPath()), phase);
   }
 
-  @Override
-  public String toString() {
-    return commandKey == null ? "UNKNOWN" : commandKey + "[" + id + "]";
+  public TickPhase(CompoundTag tag)
+  {
+    this(tag.getInt("dim"), tag.getInt("phase"));
   }
 
-  public int getId()
+  /*
+   * Gets the next tick phase, changing dimension as necessary
+   */
+  public TickPhase next(ServerLevel level)
   {
-    return id;
+    if(phase == lastPhase)
+      return new TickPhase(dim + 1 == dims.size() ? 0 : dim + 1, 0);
+
+    if(phase == BLOCK_EVENT && dimensionUnloaded(level))
+      return new TickPhase(dim, phase + 3);
+
+    return new TickPhase(dim, phase == lastPhase ? 0 : phase + 1);
   }
 
-  public String getCommandKey()
+  /*
+   * Gets the next tick phase, but only in the current dimension
+   */
+  public TickPhase next(int i)
   {
-    return commandKey;
+    return new TickPhase(dim, (phase + i)%totalPhases);
   }
 
-  public String getName()
+  public boolean isLast()
   {
-    return Translations.tr("subtick.tickPhase." + commandKey);
+    return phase == lastPhase && dim == dims.size() - 1;
   }
 
-  public boolean exists()
+  public boolean isPriorTo(TickPhase phase2)
   {
-    return id >= 0;
+    return dim < phase2.dim || phase < phase2.phase;
   }
 
-  public boolean isFirst()
+  public String getPath()
   {
-    return id == 0;
+    return dims.get(dim);
   }
 
-  public boolean isPriorTo(TickPhase other)
+  public String getPhaseName()
   {
-    return id < other.id;
+    return Translations.tr("subtick.tickPhase." + commandKeys.get(phase));
   }
 
-  public boolean isPosteriorTo(TickPhase other)
+  public static String getPhaseName(int phase)
   {
-    return id > other.id;
+    return Translations.tr("subtick.tickPhase." + commandKeys.get(phase));
   }
 
-  public TickPhase next()
+  public static int byCommandKey(String key) throws CommandSyntaxException
   {
-    return next(1);
-  }
-
-  public TickPhase next(int count)
-  {
-    return BY_ID[(id + count) % BY_ID.length];
-  }
-
-  public static TickPhase byId(int id)
-  {
-    return id >= 0 && id < BY_ID.length ? BY_ID[id] : UNKNOWN;
-  }
-
-  public static TickPhase byCommandKey(String key) throws CommandSyntaxException
-  {
-    TickPhase phase = BY_COMMAND_KEY.get(key);
-    if(phase == null || !phase.exists())
+    int phase = commandKeys.indexOf(key);
+    if(phase == -1)
       throw INVALID_TICK_PHASE_EXCEPTION.create(key);
     return phase;
   }
 
-  public static Collection<String> getCommandKeys()
+  public static void addDimension(ServerLevel level)
   {
-    return BY_COMMAND_KEY.keySet();
+    dims.add(level.dimension().location().getPath());
+  }
+
+  private boolean dimensionUnloaded(ServerLevel level)
+  {
+    return level.players().isEmpty() && level.getForcedChunks().isEmpty() && level.emptyTime >= 300;
   }
 }

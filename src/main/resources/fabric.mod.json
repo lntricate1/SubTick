@@ -30,6 +30,9 @@
     ],
     "g4mespeed": [
       "subtick.g4mespeed.SubtickExtension"
+    ],
+    "modmenu": [
+      "subtick.client.ModMenuImpl"
     ]
   },
   "mixins": [

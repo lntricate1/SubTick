@@ -15,17 +15,12 @@ import com.google.gson.reflect.TypeToken;
 import carpet.CarpetSettings;
 import carpet.utils.Messenger;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.Level;
 import subtick.Settings;
-import subtick.SubTick;
-import subtick.TickHandler;
 import subtick.TickPhase;
 import subtick.queues.TickingQueue;
 
 public class Translations
 {
-  // private final static Map<String, String> translations = new HashMap<>();
   private final static Map<String, Map<String, String>> translations = new HashMap<>();
 
   public static void update(String lang)
@@ -72,56 +67,39 @@ public class Translations
       new HashMap<String, String>();
   }
 
-  public static String[] tr(String key, Level level)
+  public static String[] tr(String key, TickPhase phase, Integer n)
   {
     String t = (key.contains(".err") ? Settings.subtickErrorFormat : Settings.subtickTextFormat) + " ";
     String tr = t + tr(key);
 
     t = "\0" + t;
-    if(level != null)
-      tr = tr.replace("{dim}", "\0" + dim(level) + t);
-
-    return tr.split("\0");
-  }
-
-  public static String[] tr(String key, TickHandler handler, Integer n)
-  {
-    String t = (key.contains(".err") ? Settings.subtickErrorFormat : Settings.subtickTextFormat) + " ";
-    String tr = t + tr(key);
-
-    t = "\0" + t;
-    tr = tr.replace("{dim}", "\0" + dim(handler.level) + t);
-    tr = tr.replace("{phase}", "\0" + phase(handler.current_phase) + t);
-    if(n != null)
-      tr = tr.replace("{n}", "\0" + n(n) + t);
-
-    return tr.split("\0");
-  }
-
-  public static String[] tr(String key, Level level, TickPhase phase, Integer n)
-  {
-    String t = (key.contains(".err") ? Settings.subtickErrorFormat : Settings.subtickTextFormat) + " ";
-    String tr = t + tr(key);
-
-    t = "\0" + t;
-    if(level != null)
-      tr = tr.replace("{dim}", "\0" + dim(level) + t);
     if(phase != null)
-      tr = tr.replace("{phase}", "\0" + phase(phase) + t);
+      tr = tr.replace("{dim}", "\0" + dim(phase) + t).replace("{phase}", "\0" + phase(phase) + t);
     if(n != null)
       tr = tr.replace("{n}", "\0" + n(n) + t);
 
     return tr.split("\0");
   }
 
-  public static String[] tr(String key, Level level, TickingQueue queue, Integer n)
+  public static String[] tr(String key, TickPhase phase)
+  {
+    String t = (key.contains(".err") ? Settings.subtickErrorFormat : Settings.subtickTextFormat) + " ";
+    String tr = t + tr(key);
+
+    t = "\0" + t;
+    if(phase != null)
+      tr = tr.replace("{dim}", "\0" + dim(phase) + t).replace("{phase}", "\0" + phase(phase) + t);
+
+    return tr.split("\0");
+  }
+
+
+  public static String[] tr(String key, TickingQueue queue, Integer n)
   {
     String t = t(key.contains(".err"));
     String tr = t + tr(key);
 
     t = "\0" + t;
-    if(level != null)
-      tr = tr.replace("{dim}", "\0" + dim(level) + t);
     if(queue != null)
     {
       tr = tr.replace("{queue}", "\0" + queue(queue) + t);
@@ -133,34 +111,29 @@ public class Translations
     return tr.split("\0");
   }
 
-  public static void m(CommandSourceStack source, String key, Level level)
+  public static void m(CommandSourceStack source, String key)
   {
-    Messenger.m(source, (Object[])tr("subtick.feedback." + key, level));
+    Messenger.m(source, t(key.contains(".err")) + tr("subtick.feedback." + key));
   }
 
-  public static void m(CommandSourceStack source, String key, TickHandler handler)
+  public static void m(CommandSourceStack source, String key, TickPhase phase)
   {
-    Messenger.m(source, (Object[])tr("subtick.feedback." + key, handler, null));
+    Messenger.m(source, (Object[])tr("subtick.feedback." + key, phase));
   }
 
-  public static void m(CommandSourceStack source, String key, Level level, TickPhase phase)
+  public static void m(CommandSourceStack source, String key, TickPhase phase, int n)
   {
-    Messenger.m(source, (Object[])tr("subtick.feedback." + key, level, phase, null));
+    Messenger.m(source, (Object[])tr("subtick.feedback." + key, phase, n));
   }
 
-  public static void m(CommandSourceStack source, String key, Level level, TickPhase phase, int n)
+  public static void m(CommandSourceStack source, String key, TickingQueue queue)
   {
-    Messenger.m(source, (Object[])tr("subtick.feedback." + key, level, phase, n));
+    Messenger.m(source, (Object[])tr("subtick.feedback." + key, queue, null));
   }
 
-  public static void m(CommandSourceStack source, String key, Level level, TickingQueue queue)
+  public static void m(CommandSourceStack source, String key, TickingQueue queue, int n)
   {
-    Messenger.m(source, (Object[])tr("subtick.feedback." + key, level, queue, null));
-  }
-
-  public static void m(CommandSourceStack source, String key, Level level, TickingQueue queue, int n)
-  {
-    Messenger.m(source, (Object[])tr("subtick.feedback." + key, level, queue, n));
+    Messenger.m(source, (Object[])tr("subtick.feedback." + key, queue, n));
   }
 
   public static String t(boolean err)
@@ -173,11 +146,6 @@ public class Translations
     return Settings.subtickNumberFormat + " " + x;
   }
 
-  public static String phase(TickPhase phase)
-  {
-    return Settings.subtickPhaseFormat + " " + phase.getName();
-  }
-
   public static String queue(TickingQueue queue)
   {
     return Settings.subtickPhaseFormat + " " + queue.getName();
@@ -188,10 +156,15 @@ public class Translations
     return Settings.subtickPhaseFormat + " " + queue.getNamePlural();
   }
 
-  public static String dim(Level level)
+  public static String phase(TickPhase phase)
   {
-    ResourceLocation location = level.dimension().location();
-    return Settings.subtickDimensionFormat + " " + location.getPath().substring(0, 1).toUpperCase() + location.getPath().substring(1)
-      + "\0^" + Settings.subtickDimensionFormat + " " + location.toString();
+    return Settings.subtickPhaseFormat + " " + phase.getPhaseName();
+  }
+
+  public static String dim(TickPhase phase)
+  {
+    String path = phase.getPath();
+    return Settings.subtickDimensionFormat + " " + path.substring(0, 1).toUpperCase() + path.substring(1)
+      + "\0^" + Settings.subtickDimensionFormat + " " + path;
   }
 }

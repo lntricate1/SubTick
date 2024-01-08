@@ -28,6 +28,9 @@ repositories {
       includeGroup 'maven.modrinth'
     }
   }
+  maven {
+    url 'https://maven.terraformersmc.com/releases'
+  }
 }
 
 dependencies {
@@ -35,6 +38,7 @@ dependencies {
   minecraft "com.mojang:minecraft:${project.minecraft_version}"
   mappings loom.layered {
     mappings file("../../lithium_mappings.tiny")
+    mappings file("../../malilib_mappings.tiny")
     officialMojangMappings()
   }
   modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -46,6 +50,8 @@ dependencies {
   modImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
   modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
   modImplementation "maven.modrinth:lithium:${project.lithium_version}"
+  modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_version}"
+  modImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
 }
 
 JavaVersion JAVA_COMPATIBILITY

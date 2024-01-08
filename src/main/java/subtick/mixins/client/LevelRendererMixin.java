@@ -21,8 +21,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
-
-import subtick.RenderHandler;
 import subtick.client.ClientTickHandler;
 
 @Mixin(LevelRenderer.class)
@@ -31,7 +29,7 @@ public class LevelRendererMixin
   @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSnowAndRain(Lnet/minecraft/client/renderer/LightTexture;FDDD)V", ordinal = 1))
   private void onRenderWorldLastNormal(PoseStack poseStack, float delta, long time, boolean renderBlockOutline, Camera camera, GameRenderer renderer, LightTexture lightTexture, Matrix4f projMatrix, CallbackInfo ci)
   {
-    RenderHandler.render();
+    subtick.client.LevelRenderer.render(poseStack);
   }
 
   // Everything below this point is yoinked from carpet

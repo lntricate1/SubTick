@@ -1,0 +1,4 @@
+tiny	2	0	intermediary	named
+c	fi/dy/masa/malilib/gui/GuiTextFieldGeneric	fi/dy/masa/malilib/gui/GuiTextFieldGeneric
+	m	(I)V	setCursorPosition	malilib$setCursorPosition
+	m	()I	getCursorPosition	malilib$getCursorPosition

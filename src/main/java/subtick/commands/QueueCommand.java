@@ -21,7 +21,7 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import subtick.Queues;
 import subtick.Settings;
-import subtick.SubTick;
+import subtick.queues.TickingQueue;
 
 public class QueueCommand
 {
@@ -29,11 +29,11 @@ public class QueueCommand
   {
     dispatcher.register(
       literal("queueStep")
-      .then(argument("queue", word()).suggests((c, b) -> suggest(Queues.getQueues(), b))
+      .then(argument("queue", word()).suggests((c, b) -> suggest(TickingQueue.commandKeys, b))
         .then(argument("count", integer(1)).suggests((c, b) -> suggest(new HashSet<String>()
         // HACKY FIX because brigadier doesn't like 2 arguments both suggesting stuff
         {{
-          Set<String> modes = SubTick.getTickHandler(c).queues.byCommandKey(getString(c, "queue")).getModes();
+          Set<String> modes = TickingQueue.byCommandKey(getString(c, "queue")).getModes();
           if(modes.isEmpty())
             add("1");
           else
@@ -79,9 +79,9 @@ public class QueueCommand
   private static int step(CommandSourceStack c, String commandKey, String modeKey, int count, int range, boolean force) throws CommandSyntaxException
   {
     //#if MC >= 11904
-    //$$ SubTick.getTickHandler(c).queues.schedule(c, commandKey, modeKey, count, BlockPos.containing(c.getPosition()), range, force);
+    //$$ SubTick.getTickHandler(c).queues.schedule(c, c.getLevel().dimension().location(), TickingQueue.byCommandKey(commandKey), modeKey, count, BlockPos.containing(c.getPosition()), range, force);
     //#else
-    SubTick.getTickHandler(c).queues.schedule(c, commandKey, modeKey, count, new BlockPos(c.getPosition()), range, force);
+    Queues.schedule(c, TickingQueue.byCommandKey(commandKey), modeKey, count, new BlockPos(c.getPosition()), range, force);
     //#endif
     return Command.SINGLE_SUCCESS;
   }

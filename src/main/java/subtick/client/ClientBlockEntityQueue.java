@@ -2,16 +2,17 @@ package subtick.client;
 
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
+import subtick.QueueElement;
 
 public class ClientBlockEntityQueue
 {
   private static boolean stepping;
   private static final HashSet<TickingBlockEntity> ticked_block_entities = new HashSet<>();
+  private static final HashSet<BlockPos> poses = new HashSet<>();
 
   private static void start(ClientLevel level)
   {
@@ -22,8 +23,16 @@ public class ClientBlockEntityQueue
     }
   }
 
-  public static void step(ClientLevel level, List<BlockPos> poses)
+  public static void addPos(QueueElement element)
   {
+    poses.add(element.blockPos());
+  }
+
+  public static void step(ClientLevel level)
+  {
+    if(poses.isEmpty())
+      return;
+
     if(!stepping)
     {
       start(level);
@@ -37,19 +46,20 @@ public class ClientBlockEntityQueue
       TickingBlockEntity be = iterator.next();
       if(be.getPos() == null)
         continue;
-      for(BlockPos pos : poses)
-        if(be.getPos().equals(pos))
+
+      if(poses.contains(be.getPos()))
+      {
+        if(be.isRemoved())
+          iterator.remove();
+        else
         {
-          if(be.isRemoved())
-            iterator.remove();
-          else
-          {
-            be.tick();
-            ticked_block_entities.add(be);
-          }
-          break;
+          be.tick();
+          ticked_block_entities.add(be);
         }
+        break;
+      }
     }
+    poses.clear();
   }
 
   public static boolean end(ClientLevel level)

@@ -28,3 +28,4 @@ accessible field net/minecraft/world/level/Level blockEntityTickers Ljava/util/L
 
 accessible method net/minecraft/server/level/ChunkMap tick ()V
 accessible method net/minecraft/server/level/ChunkMap getChunks ()Ljava/lang/Iterable;
+accessible field net/minecraft/server/level/ServerLevel emptyTime I

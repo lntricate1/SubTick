@@ -1,23 +1,22 @@
 package subtick.network;
 
-import java.util.List;
-
 import carpet.CarpetSettings;
 import carpet.helpers.TickSpeed;
 import carpet.network.CarpetClient;
 import carpet.network.ClientNetworkHandler;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.phys.AABB;
+import subtick.QueueElement;
+import subtick.TickPhase;
 import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
 import subtick.util.Translations;
 
@@ -52,7 +51,7 @@ public class ServerNetworkHandler
     }
     catch(IllegalArgumentException e)
     {
-      Translations.m(actor, "queueCommand.err.packetSize", actor.getLevel());
+      Translations.m(actor, "queueCommand.err.packetSize");
     }
   }
 
@@ -100,117 +99,140 @@ public class ServerNetworkHandler
     }
   }
 
-  public static void updateFrozenStateToConnectedPlayers(ServerLevel level, boolean frozen)
+  public static void sendFrozen(ServerLevel level, TickPhase tickPhase)
   {
-    // if(!level.server.isDedicatedServer())
-    // {
-    //   ClientTickHandler.setFreeze(frozen);
-    //   return;
-    // }
-    if(CarpetSettings.superSecretSetting) return;
+    if(CarpetSettings.superSecretSetting)
+      return;
 
     CompoundTag tag = new CompoundTag();
     CompoundTag tickingState = new CompoundTag();
-    tickingState.putBoolean("is_paused", frozen);
-    tickingState.putBoolean("deepFreeze", frozen);
+    tickingState.putBoolean("is_paused", true);
+    tickingState.putBoolean("deepFreeze", true);
+    tickingState.putInt("phase", tickPhase.phase());
+    tickingState.putInt("dim", tickPhase.dim());
+    ListTag listTag = new ListTag();
+    for(String dim : TickPhase.getDimensions())
+    {
+      // Why is NBT like this? i know you can make a list of StringTags, but there seems to be no way of doing it in mojang code
+      CompoundTag element = new CompoundTag();
+      element.putString("d", dim);
+      listTag.add(element);
+    }
+    tickingState.put("dims", listTag);
     tag.put("TickingState", tickingState);
     sendNbt(level, tag);
   }
 
-  public static void updateFrozenStateToConnectedPlayer(ServerPlayer player, boolean frozen)
+  public static void sendFrozen(ServerPlayer player, boolean frozen, TickPhase tickPhase)
   {
-    // ServerLevel level = player.getLevel();
-    // if(!level.server.isDedicatedServer())
-    // {
-    //   ClientTickHandler.setFreeze(frozen);
-    //   return;
-    // }
-    if(CarpetSettings.superSecretSetting) return;
-    if(!ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().containsKey(player)) return;
+    if(CarpetSettings.superSecretSetting || !ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().containsKey(player))
+      return;
 
     CompoundTag tag = new CompoundTag();
     CompoundTag tickingState = new CompoundTag();
-    tickingState.putBoolean("is_paused", frozen);
-    tickingState.putBoolean("deepFreeze", frozen);
+    if(frozen)
+    {
+      tickingState.putBoolean("is_paused", true);
+      tickingState.putBoolean("deepFreeze", true);
+      tickingState.putInt("phase", tickPhase.phase());
+      tickingState.putInt("dim", tickPhase.dim());
+    }
+    else
+    {
+      tickingState.putBoolean("is_paused", false);
+      tickingState.putBoolean("deepFreeze", false);
+      tickingState.putInt("phase", -1);
+      tickingState.putInt("dim", -1);
+    }
+    ListTag listTag = new ListTag();
+    for(String dim : TickPhase.getDimensions())
+    {
+      CompoundTag element = new CompoundTag();
+      element.putString("d", dim);
+      listTag.add(element);
+    }
+    tickingState.put("dims", listTag);
     tag.put("TickingState", tickingState);
     sendNbt(player, tag);
   }
 
-  public static void updateTickPlayerActiveTimeoutToConnectedPlayers(ServerLevel level, int ticks)
+  public static void sendUnfrozen(ServerLevel level)
   {
-    // if(!level.server.isDedicatedServer() && ticks > TickSpeed.PLAYER_GRACE)
-    // {
-    //   ClientTickHandler.scheduleTickStep(ticks);
-    //   return;
-    // }
-    if(CarpetSettings.superSecretSetting) return;
+    if(CarpetSettings.superSecretSetting)
+      return;
 
     CompoundTag tag = new CompoundTag();
-    tag.putInt("TickPlayerActiveTimeout", ticks + TickSpeed.PLAYER_GRACE);
+    CompoundTag tickingState = new CompoundTag();
+    tickingState.putBoolean("is_paused", false);
+    tickingState.putBoolean("deepFreeze", false);
+    tickingState.putInt("phase", -1);
+    tickingState.putInt("dim", -1);
+    tag.put("TickingState", tickingState);
     sendNbt(level, tag);
   }
 
-  public static void sendBlockHighlights(List<AABB> aabbs, ServerLevel level, CommandSourceStack actor)
+  public static void sendTickStep(ServerLevel level, int ticks, TickPhase tickPhase)
   {
-    if(CarpetSettings.superSecretSetting || aabbs.isEmpty()) return;
+    if(CarpetSettings.superSecretSetting)
+      return;
+
+    if(ticks != 0)
+    {
+      CompoundTag tag = new CompoundTag();
+      tag.putInt("TickPlayerActiveTimeout", ticks + TickSpeed.PLAYER_GRACE);
+      sendNbt(level, tag);
+    }
+
+    CompoundTag tag = new CompoundTag();
+    CompoundTag phaseTag = new CompoundTag();
+    phaseTag.putInt("dim", tickPhase.dim());
+    phaseTag.putInt("phase", tickPhase.phase());
+    tag.put("TickPhase", phaseTag);
+    sendNbt(level, tag);
+  }
+
+  public static void sendQueueStep(ObjectLinkedOpenHashSet<QueueElement> queue, int steps, ServerLevel level, CommandSourceStack actor)
+  {
+    if(CarpetSettings.superSecretSetting || queue.isEmpty())
+      return;
+
+    CompoundTag tag = new CompoundTag();
+    CompoundTag queueTag = new CompoundTag();
+    ListTag list = new ListTag();
+    for(QueueElement element : queue)
+    {
+      CompoundTag elementTag = new CompoundTag();
+      elementTag.putString("s", element.label());
+      elementTag.putInt("x", element.x());
+      elementTag.putInt("y", element.y());
+      elementTag.putInt("z", element.z());
+      elementTag.putInt("d", element.depth());
+      list.add(elementTag);
+    }
+    queueTag.put("queue", list);
+    queueTag.putInt("steps", steps);
+    tag.put("QueueStep", queueTag);
+    sendNbt(level, tag, actor);
+  }
+
+  public static void sendQueue(ObjectLinkedOpenHashSet<QueueElement> queue, ServerLevel level)
+  {
+    if(CarpetSettings.superSecretSetting || queue.isEmpty())
+      return;
 
     CompoundTag tag = new CompoundTag();
     ListTag list = new ListTag();
-    for(AABB aabb : aabbs)
+    for(QueueElement element : queue)
     {
-      CompoundTag nbt = new CompoundTag();
-      nbt.putDouble("x", aabb.minX);
-      nbt.putDouble("y", aabb.minY);
-      nbt.putDouble("z", aabb.minZ);
-      nbt.putDouble("X", aabb.maxX);
-      nbt.putDouble("Y", aabb.maxY);
-      nbt.putDouble("Z", aabb.maxZ);
-      list.add(nbt);
+      CompoundTag elementTag = new CompoundTag();
+      elementTag.putString("s", element.label());
+      elementTag.putInt("x", element.x());
+      elementTag.putInt("y", element.y());
+      elementTag.putInt("z", element.z());
+      elementTag.putInt("d", element.depth());
+      list.add(elementTag);
     }
-    tag.put("BlockHighlighting", list);
-    sendNbt(level, tag, actor);
-  }
-
-  public static void sendEntityHighlights(List<Integer> ids, ServerLevel level, CommandSourceStack actor)
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    CompoundTag tag = new CompoundTag();
-    tag.put("EntityHighlighting", new IntArrayTag(ids));
-    sendNbt(level, tag, actor);
-  }
-
-  public static void clearBlockHighlights(ServerLevel level)
-  {
-    CompoundTag tag = new CompoundTag();
-    tag.put("BlockHighlighting", new ListTag());
+    tag.put("Queue", list);
     sendNbt(level, tag);
-  }
-
-  public static void clearEntityHighlights(ServerLevel level)
-  {
-    if(CarpetSettings.superSecretSetting) return;
-
-    CompoundTag tag = new CompoundTag();
-    tag.put("EntityHighlighting", new IntArrayTag(new int[]{}));
-    sendNbt(level, tag);
-  }
-
-  public static void sendBlockEntityTicks(List<BlockPos> poses, ServerLevel level, CommandSourceStack actor)
-  {
-    if(CarpetSettings.superSecretSetting || poses.isEmpty()) return;
-
-    CompoundTag tag = new CompoundTag();
-    ListTag list = new ListTag();
-    for(BlockPos pos : poses)
-    {
-      CompoundTag nbt = new CompoundTag();
-      nbt.putInt("x", pos.getX());
-      nbt.putInt("y", pos.getY());
-      nbt.putInt("z", pos.getZ());
-      list.add(nbt);
-    }
-    tag.put("BlockEntityTicks", list);
-    sendNbt(level, tag, actor);
   }
 }

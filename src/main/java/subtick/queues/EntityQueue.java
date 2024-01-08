@@ -5,36 +5,50 @@ import java.util.Iterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
+
+import subtick.QueueElement;
 import subtick.TickPhase;
 
 public class EntityQueue extends TickingQueue
 {
   private Iterator<Entity> entity_iterator;
 
-  public EntityQueue(ServerLevel level)
+  public EntityQueue()
   {
-    super(level, TickPhase.ENTITY, "entity", "Entity", "Entities");
+    super(TickPhase.ENTITY, "entity", "Entity", "Entities");
   }
 
   @Override
-  public void start()
+  public void start(ServerLevel level)
   {
+    queue.clear();
+    for(Entity e : level.entityTickList.active.values())
+      queue.add(new QueueElement(e));
+
     level.entityTickList.iterated = level.entityTickList.active;
     entity_iterator = level.entityTickList.active.values().iterator();
   }
 
   @Override
-  public Pair<Integer, Boolean> step(int count, BlockPos pos, int range)
+  public Triple<Integer, Integer, Boolean> step(int count, BlockPos pos, int range)
   {
     int executed_steps = 0;
-    while(executed_steps < count && entity_iterator.hasNext())
+    int success_steps = 0;
+    while(success_steps < count && entity_iterator.hasNext())
     {
       Entity entity = entity_iterator.next();
-      if(entity.isRemoved()) continue;
+      if(entity.isRemoved())
+      {
+        queue.remove(new QueueElement(entity));
+        continue;
+      }
 
       if(level.shouldDiscardEntity(entity))
+      {
+        queue.remove(new QueueElement(entity));
         entity.discard();
+      }
       else
       {
         entity.checkDespawn();
@@ -50,12 +64,10 @@ public class EntityQueue extends TickingQueue
         level.guardEntityTick(level::tickNonPassenger, entity);
       }
       if(rangeCheck(entity.blockPosition(), pos, range))
-      {
-        addEntityHighlight(entity.getId());
-        executed_steps ++;
-      }
+        success_steps ++;
+      executed_steps ++;
     }
-    return Pair.of(executed_steps, exhausted = !entity_iterator.hasNext());
+    return Triple.of(executed_steps, success_steps, exhausted = !entity_iterator.hasNext());
   }
 
   @Override
