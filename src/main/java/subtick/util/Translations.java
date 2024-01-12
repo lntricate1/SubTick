@@ -19,9 +19,53 @@ import subtick.Settings;
 import subtick.TickPhase;
 import subtick.queues.TickingQueue;
 
+//#if MC >= 11900
+//$$ import java.util.Collections;
+//$$ import net.minecraft.resources.ResourceLocation;
+//$$ import net.minecraft.world.level.Level;
+//$$ import subtick.TickHandler;
+//#endif
+
 public class Translations
 {
+  //#if MC >= 11900
+  //$$ public static Map<String, String> getTranslationFromResourcePath(String lang)
+  //$$ {
+  //$$   InputStream langFile = Translations.class.getClassLoader().getResourceAsStream("assets/subtick/lang/%s.json".formatted(lang));
+  //$$   if(langFile == null)
+  //$$   {
+  //$$     return Collections.emptyMap();
+  //$$   }
+  //$$   String jsonData;
+  //$$   try
+  //$$   {
+  //$$     jsonData = IOUtils.toString(langFile, StandardCharsets.UTF_8);
+  //$$   }
+  //$$   catch(IOException e)
+  //$$   {
+  //$$     return Collections.emptyMap();
+  //$$   }
+  //$$   Gson gson = new GsonBuilder().setLenient().create();
+  //$$   return gson.fromJson(jsonData, new TypeToken<Map<String, String>>(){}.getType());
+  //$$ }
+  //$$
+  //$$ // compat
+  //$$ public static String tr(String key)
+  //$$ {
+  //$$   return carpet.utils.Translations.tr(key);
+  //$$ }
+  //#else
   private final static Map<String, Map<String, String>> translations = new HashMap<>();
+
+  public static Map<String, String> getTranslationFromResourcePath(String lang)
+  {
+    // gnembon why??
+    update("en_us");
+    update(lang);
+    return translations.containsKey(lang) ?
+      Map.copyOf(translations.get(lang)) :
+      new HashMap<String, String>();
+  }
 
   public static void update(String lang)
   {
@@ -56,16 +100,7 @@ public class Translations
     return translations.containsKey(lang) ?
       translations.get(lang).getOrDefault(key, key) : key;
   }
-
-  public static Map<String, String> getTranslationFromResourcePath(String lang)
-  {
-    // gnembon why??
-    update("en_us");
-    update(lang);
-    return translations.containsKey(lang) ?
-      Map.copyOf(translations.get(lang)) :
-      new HashMap<String, String>();
-  }
+  //#endif
 
   public static String[] tr(String key, TickPhase phase, Integer n)
   {

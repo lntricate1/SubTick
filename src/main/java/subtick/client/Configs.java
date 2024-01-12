@@ -36,8 +36,8 @@ public class Configs implements IConfigHandler
   public static final ConfigInteger
     HUD_OFFSET_X = new ConfigInteger("hudOffsetX", 0, "X offset for the HUD"),
     HUD_OFFSET_Y = new ConfigInteger("hudOffsetY", 0, "Y offset for the HUD"),
-    MAX_QUEUE_SIZE = new ConfigInteger("maxQueueSize", 20, "Maximum number of elements in the queue HUD"),
-    MAX_HIGHLIGHT_SIZE = new ConfigInteger("maxHighlightSize", 15, "Maximum number of highlighted elements in the queue HUD\nUseful to control the number of highlights when the queue is bigger than maxQueueSize");
+    MAX_QUEUE_SIZE = new ConfigInteger("maxQueueSize", 15, "Maximum number of elements in the queue HUD"),
+    MAX_HIGHLIGHT_SIZE = new ConfigInteger("maxHighlightSize", 10, "Maximum number of highlighted elements in the queue HUD\nUseful to control the number of highlights when the queue is bigger than maxQueueSize");
 
   public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
     SHOW_HUD,

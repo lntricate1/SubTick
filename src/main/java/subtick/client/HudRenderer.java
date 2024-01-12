@@ -60,7 +60,7 @@ public class HudRenderer
   public static enum Align implements IConfigOptionListEntry
   {
     TOP_LEFT(0, 0, "top_left"), TOP(1, 0, "top"), TOP_RIGHT(2, 0, "top_right"),
-    LEFT(0, 1, "left"), CENTER(1, 1, "center"), RIGHT(2, 1, ""),
+    LEFT(0, 1, "left"), CENTER(1, 1, "center"), RIGHT(2, 1, "right"),
     BOTTOM_LEFT(0, 2, "bottom_left"), BOTTOM(1, 2, "bottom"), BOTTOM_RIGHT(2, 2, "bottom_right");
 
     private final int x, y;
@@ -149,31 +149,29 @@ public class HudRenderer
         wDim = Math.max(wDim, font.width(dim));
       wPhase += 2;
       wDim += 2;
-      int wDimPhase = wDim + wPhase;
+      int wDimPhase = wDim + wPhase + 10;
 
       int h = font.lineHeight + 1;
 
       if(ClientTickHandler.queue.isEmpty())
-        renderHudA(poseStack, tickPhase, align.getX(wDimPhase) + xOff, align.getY(h*TickPhase.totalPhases) + yOff, wDim, wPhase, h);
+        renderHudA(poseStack, tickPhase, align.getX(wDimPhase + 10) + xOff, align.getY(h*TickPhase.totalPhases) + yOff, wDim, wPhase, h);
       else
       {
         Component[] queue = new Component[Math.min(ClientTickHandler.queue.size(), Configs.MAX_QUEUE_SIZE.getIntegerValue())];
         Pair<Integer, Integer> indices = trimQueue(Configs.MAX_QUEUE_SIZE.getIntegerValue(), Configs.MAX_HIGHLIGHT_SIZE.getIntegerValue());
-        System.out.println(indices);
         int wQueue = 0;
         int i = indices.getLeft();
         int j = 0;
         boolean depth = tickPhase.phase() == TickPhase.BLOCK_TICK || tickPhase.phase() == TickPhase.BLOCK_EVENT;
         while(i < indices.getRight())
         {
-          QueueElement element = ClientTickHandler.queue.get(i);
-          Component s;
-          queue[j++] = s = text(element, ++i, depth);
+          QueueElement element = ClientTickHandler.queue.get(i++);
+          Component s = queue[j++] = text(element, i, depth);
           wQueue = Math.max(wQueue, font.width(s));
         }
         wQueue += 2;
         int wAll = wDimPhase + wQueue + 10;
-        renderHudB(poseStack, queue, tickPhase, ClientTickHandler.queueIndex1 - indices.getLeft(), ClientTickHandler.queueIndex2 - indices.getLeft(), align.getX(wAll) + xOff, align.getY(h*TickPhase.totalPhases) + yOff, wDim, wPhase, wQueue, h);
+        renderHudB(poseStack, queue, tickPhase, ClientTickHandler.queueIndex1 - indices.getLeft(), ClientTickHandler.queueIndex2 - indices.getLeft(), align.getX(wAll + 10) + xOff, align.getY(h*Math.max(TickPhase.totalPhases, indices.getRight() - indices.getLeft())) + yOff, wDim, wPhase, wQueue, h);
       }
     }
   }
@@ -219,7 +217,7 @@ public class HudRenderer
     x += 2;
     for(int y1 = y+2, i = 0; i < ClientTickHandler.dimensions.size(); i++, y1 += h)
       //#if MC >= 12000
-      //$$ guiGraphics.drawString(font, ClientTickHandler.dimensions.get(i), x, y1, i < phase.dim() ? STEPPED_TEXT : TO_STEP_TEXT);
+      //$$ guiGraphics.drawString(font, ClientTickHandler.dimensions.get(i), x, y1, i < phase.dim() ? STEPPED_TEXT : TO_STEP_TEXT, false);
       //#else
       font.draw(poseStack, ClientTickHandler.dimensions.get(i), x, y1, i < phase.dim() ? STEPPED_TEXT : TO_STEP_TEXT);
       //#endif
@@ -227,7 +225,7 @@ public class HudRenderer
     x += wDim + 10;
     for(int y1 = y+2, i = 0; i < TickPhase.totalPhases; i++, y1 += h)
       //#if MC >= 12000
-      //$$ guiGraphics.drawString(font, TickPhase2.getPhaseName(i), x, y1, i < phase.phase() ? STEPPED_TEXT : TO_STEP_TEXT);
+      //$$ guiGraphics.drawString(font, TickPhase.getPhaseName(i), x, y1, i < phase.phase() ? STEPPED_TEXT : TO_STEP_TEXT, false);
       //#else
       font.draw(poseStack, TickPhase.getPhaseName(i), x, y1, i < phase.phase() ? STEPPED_TEXT : TO_STEP_TEXT);
       //#endif
@@ -264,7 +262,7 @@ public class HudRenderer
     x += 2;
     for(int y1 = y+2, i = 0; i < ClientTickHandler.dimensions.size(); i++, y1 += h)
       //#if MC >= 12000
-      //$$ guiGraphics.drawString(font, ClientTickHandler.dimensions.get(i), x, y1, i < phase.dim() ? STEPPED_TEXT : TO_STEP_TEXT);
+      //$$ guiGraphics.drawString(font, ClientTickHandler.dimensions.get(i), x, y1, i < phase.dim() ? STEPPED_TEXT : TO_STEP_TEXT, false);
       //#else
       font.draw(poseStack, ClientTickHandler.dimensions.get(i), x, y1, i < phase.dim() ? STEPPED_TEXT : TO_STEP_TEXT);
       //#endif
@@ -272,7 +270,7 @@ public class HudRenderer
     x += wDim + 10;
     for(int y1 = y+2, i = 0; i < TickPhase.totalPhases; i++, y1 += h)
       //#if MC >= 12000
-      //$$ guiGraphics.drawString(font, TickPhase2.getPhaseName(i), x, y1, i < phase.phase() ? STEPPED_TEXT : TO_STEP_TEXT);
+      //$$ guiGraphics.drawString(font, TickPhase.getPhaseName(i), x, y1, i < phase.phase() ? STEPPED_TEXT : TO_STEP_TEXT, false);
       //#else
       font.draw(poseStack, TickPhase.getPhaseName(i), x, y1, i < phase.phase() ? STEPPED_TEXT : TO_STEP_TEXT);
       //#endif
@@ -280,7 +278,7 @@ public class HudRenderer
     x += wPhase + 10;
     for(int y1 = y+2, i = 0; i < queue.length; i++, y1 += h)
       //#if MC >= 12000
-      //$$ guiGraphics.drawString(font, queue[i], x, y1, i < iqueue1 ? STEPPED_TEXT : i < iqueue2 ? STEPPING_TEXT : TO_STEP_TEXT);
+      //$$ guiGraphics.drawString(font, queue[i], x, y1, i < iqueue1 ? STEPPED_TEXT : i < iqueue2 ? STEPPING_TEXT : TO_STEP_TEXT, false);
       //#else
       font.draw(poseStack, queue[i], x, y1, i < iqueue1 ? STEPPED_TEXT : i < iqueue2 ? STEPPING_TEXT : TO_STEP_TEXT);
       //#endif

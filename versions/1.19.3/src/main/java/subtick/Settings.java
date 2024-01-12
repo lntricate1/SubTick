@@ -39,10 +39,5 @@ public class Settings
   @Rule(
     categories = "subtick"
   )
-  public static int subtickHighlightColor = 0x00FF00;
-
-  @Rule(
-    categories = "subtick"
-  )
   public static int subtickDefaultRange = 32;
 }

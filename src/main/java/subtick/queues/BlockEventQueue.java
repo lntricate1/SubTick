@@ -93,6 +93,8 @@ public class BlockEventQueue extends TickingQueue
           executed_steps ++;
         //#if MC >= 11800
         //$$ }
+        //$$ else
+        //$$   queue.remove(new QueueElement(blockEvent, depth-1));
         //$$ level.blockEventsToReschedule.add(blockEvent);
         //#endif
       }
