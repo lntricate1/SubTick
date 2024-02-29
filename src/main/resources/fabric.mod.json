@@ -25,6 +25,9 @@
     "main": [
       "subtick.SubTick"
     ],
+    "client": [
+      "subtick.client.SubTickClient"
+    ],
     "g4mespeed": [
       "subtick.g4mespeed.SubtickExtension"
     ],

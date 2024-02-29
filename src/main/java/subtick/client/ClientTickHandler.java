@@ -26,6 +26,12 @@ public class ClientTickHandler
   private static int remaining_ticks;
   public static boolean skip_block_entities;
 
+  private static void clearRenders()
+  {
+    LevelRenderer.clear();
+    mc.level.tickingEntities.forEach((entity) -> ((IEntity)entity).setCGlowing(false));
+  }
+
   public static void setFreeze(CompoundTag tag)
   {
     if(frozen = tag.getBoolean("is_paused"))
@@ -47,7 +53,7 @@ public class ClientTickHandler
     {
       ClientBlockEntityQueue.end(mc.level);
       clearQueue();
-      LevelRenderer.clear();
+      clearRenders();
     }
   }
 
@@ -55,7 +61,7 @@ public class ClientTickHandler
   {
     tickPhase = phase;
     clearQueue();
-    LevelRenderer.clear();
+    clearRenders();
     queueIndex1 = 0;
     queueIndex2 = 0;
   }
@@ -85,7 +91,7 @@ public class ClientTickHandler
     int index2 = Math.min(queueIndex2, queue.size());
     int index1 = Math.min(queueIndex1, index2);
 
-    LevelRenderer.clear();
+    clearRenders();
     if(tickPhase.phase() == TickPhase.ENTITY)
     {
       ClientLevel level = mc.level;
@@ -140,7 +146,7 @@ public class ClientTickHandler
       return;
 
     clearQueue();
-    LevelRenderer.clear();
+    clearRenders();
 
     if(ClientBlockEntityQueue.end(mc.level))
       skip_block_entities = true;

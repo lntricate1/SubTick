@@ -22,6 +22,7 @@ public class EntityQueue extends TickingQueue
   @Override
   public void start(ServerLevel level)
   {
+    this.level = level;
     queue.clear();
     for(Entity e : level.entityTickList.active.values())
       queue.add(new QueueElement(e));

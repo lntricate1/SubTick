@@ -67,7 +67,7 @@ public class Configs implements IConfigHandler
       return;
 
     JsonObject root = new JsonObject();
-    ConfigUtils.writeConfigBase(root, "Colors", OPTIONS);
+    ConfigUtils.writeConfigBase(root, "Config", OPTIONS);
     JsonUtils.writeJsonToFile(root, new File(dir, "subtick.json"));
   }
 
@@ -83,6 +83,6 @@ public class Configs implements IConfigHandler
       return;
 
     JsonObject root = element.getAsJsonObject();
-    ConfigUtils.readConfigBase(root, "Colors", OPTIONS);
+    ConfigUtils.readConfigBase(root, "Config", OPTIONS);
   }
 }
