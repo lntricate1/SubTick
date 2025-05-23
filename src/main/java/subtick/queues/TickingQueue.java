@@ -1,5 +1,6 @@
 package subtick.queues;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +27,7 @@ public abstract class TickingQueue
   // Block events can happen multiple times in the same block, but only if no equivalent block event exists in the queue.
   // To keep track of them, we have 2 queues; Block events get moved to spentQueue after ticking.
   protected final ObjectLinkedOpenHashSet<QueueElement> queue = new ObjectLinkedOpenHashSet<>();
-  protected final ObjectLinkedOpenHashSet<QueueElement> spentQueue = new ObjectLinkedOpenHashSet<>();
+  protected final ArrayList<QueueElement> spentQueue = new ArrayList<>();
   protected int newQueueElementsCount = 0;
   public boolean exhausted;
 

@@ -1,11 +1,8 @@
 package subtick.mixins.client;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -15,13 +12,19 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Matrix4f;
 //#endif
 
-import carpet.fakes.MinecraftClientInferface;
 import net.minecraft.client.Camera;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
+
+//#if MC < 12006
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import carpet.fakes.MinecraftClientInferface;
+import net.minecraft.client.Minecraft;
 import subtick.client.ClientTickHandler;
+//#endif
 
 @Mixin(LevelRenderer.class)
 public class LevelRendererMixin
@@ -34,6 +37,7 @@ public class LevelRendererMixin
 
   // Everything below this point is yoinked from carpet
 
+  //#if MC < 12006
   @Shadow @Final private Minecraft minecraft;
   float initial = -1234.0f;
 
@@ -57,4 +61,5 @@ public class LevelRendererMixin
   {
     return initial == -1234.0f ? previous : initial;
   }
+  //#endif
 }

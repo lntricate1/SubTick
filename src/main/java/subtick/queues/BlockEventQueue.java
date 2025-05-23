@@ -82,7 +82,7 @@ public class BlockEventQueue extends TickingQueue
           if(!level.doBlockEvent(blockEvent))
           {
             //queue.remove(new QueueElement(blockEvent, depth-1));
-            spentQueue.removeLast();
+            spentQueue.remove(spentQueue.size() - 1);
             continue;
           }
 

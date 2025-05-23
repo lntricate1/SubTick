@@ -1,6 +1,6 @@
 plugins {
   id 'maven-publish'
-  id 'fabric-loom' version '1.5-SNAPSHOT' apply false
+  id 'fabric-loom' version '1.9-SNAPSHOT' apply false
   id 'com.replaymod.preprocess' version '20c7ec554a'
 }
 
@@ -11,12 +11,14 @@ preprocess {
   def mc1193 = createNode('1.19.3', 1_19_03, 'yarn')
   def mc1194 = createNode('1.19.4', 1_19_04, 'yarn')
   def mc1201 = createNode('1.20.1', 1_20_01, 'yarn')
+  // def mc1206 = createNode('1.20.6', 1_20_06, 'yarn')
 
   // mc1165.link(mc1171, file('versions/mapping-1.16-1.17.txt'))
   mc1171.link(mc1182, null)
   mc1182.link(mc1193, null)
   mc1193.link(mc1194, null)
   mc1194.link(mc1201, file('versions/mapping-1.19.4-1.20.1.txt'))
+  // mc1201.link(mc1206, null)
 }
 
 tasks.register('buildAndGather') {

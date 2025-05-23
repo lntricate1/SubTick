@@ -23,7 +23,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
+//#if MC < 12006
 import net.minecraft.network.chat.TextComponent;
+//#endif
 import subtick.QueueElement;
 import subtick.TickPhase;
 import subtick.util.Translations;

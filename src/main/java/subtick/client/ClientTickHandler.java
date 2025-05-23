@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+//#if MC < 12006
 import carpet.helpers.TickSpeed;
+//#endif
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.nbt.CompoundTag;
@@ -155,7 +157,11 @@ public class ClientTickHandler
 
   public static void scheduleTickStep(int ticks)
   {
+    //#if MC >= 12006
+    //$$ if(ticks <= 0)
+    //#else
     if(ticks <= TickSpeed.PLAYER_GRACE)
+    //#endif
       return;
 
     clearQueue();
@@ -175,7 +181,11 @@ public class ClientTickHandler
 
   public static void onTick(ClientLevel level)
   {
+    //#if MC >= 12006
+    //$$ if(stepping && -- remaining_ticks <= 0)
+    //#else
     if(stepping && -- remaining_ticks <= TickSpeed.PLAYER_GRACE)
+    //#endif
       stepping = false;
 
     ClientBlockEntityQueue.step(level);

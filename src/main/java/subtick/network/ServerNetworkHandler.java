@@ -1,7 +1,13 @@
 package subtick.network;
 
+import java.util.ArrayList;
+
 import carpet.CarpetSettings;
+//#if MC >= 12006
+//$$ import net.minecraft.network.protocol.game.ClientboundTickingStepPacket;
+//#else
 import carpet.helpers.TickSpeed;
+//#endif
 import carpet.network.CarpetClient;
 import carpet.network.ClientNetworkHandler;
 import io.netty.buffer.Unpooled;
@@ -19,8 +25,38 @@ import subtick.TickPhase;
 import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
 import subtick.util.Translations;
 
+//#if MC >= 12006
+//$$ import net.minecraft.resources.ResourceLocation;
+//$$ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+//$$ import net.minecraft.network.codec.StreamCodec;
+//#endif
+
 public class ServerNetworkHandler
 {
+  //#if MC >= 12006
+  //$$ public static final ResourceLocation SUBTICK_CHANNEL = ResourceLocation.fromNamespaceAndPath("subtick", "hello");
+  //$$ private record SubtickPayload(CompoundTag data) implements CustomPacketPayload
+  //$$ {
+  //$$   public static final StreamCodec<FriendlyByteBuf, SubtickPayload> STREAM_CODEC = CustomPacketPayload.codec(SubtickPayload::write, SubtickPayload::new);
+  //$$   public static final Type<SubtickPayload> TYPE = new CustomPacketPayload.type<>(SUBTICK_CHANNEL);
+  //$$ 
+  //$$   public SubtickPayload(FriendlyByteBuf input)
+  //$$   {
+  //$$     this(input.readNbt());
+  //$$   }
+  //$$ 
+  //$$   public void write(FriendlyByteBuf output)
+  //$$   {
+  //$$     output.writeNbt(data);
+  //$$   }
+  //$$ 
+  //$$   @Override public Type<SubtickPayload> type()
+  //$$   {
+  //$$     return TYPE;
+  //$$   }
+  //$$ }
+  //#endif
+
   private static boolean tryClient(ServerLevel level, CompoundTag tag)
   {
     if(level.server.isDedicatedServer())
@@ -177,9 +213,13 @@ public class ServerNetworkHandler
 
     if(ticks != 0)
     {
+      //#if MC >= 12006
+      //$$ level.getServer().getPlayerList().broadcastAll(new ClientboundTickingStepPacket(ticks));
+      //#else
       CompoundTag tag = new CompoundTag();
       tag.putInt("TickPlayerActiveTimeout", ticks + TickSpeed.PLAYER_GRACE);
       sendNbt(level, tag);
+      //#endif
     }
 
     CompoundTag tag = new CompoundTag();
@@ -190,7 +230,7 @@ public class ServerNetworkHandler
     sendNbt(level, tag);
   }
 
-  public static void sendQueueStep(ObjectLinkedOpenHashSet<QueueElement> queue, ObjectLinkedOpenHashSet<QueueElement> spentQueue, int newQueueElementsCount, int steps, ServerLevel level, CommandSourceStack actor)
+  public static void sendQueueStep(ObjectLinkedOpenHashSet<QueueElement> queue, ArrayList<QueueElement> spentQueue, int newQueueElementsCount, int steps, ServerLevel level, CommandSourceStack actor)
   {
     if(CarpetSettings.superSecretSetting || (queue.isEmpty() && spentQueue.isEmpty()))
       return;
@@ -225,7 +265,7 @@ public class ServerNetworkHandler
     sendNbt(level, tag, actor);
   }
 
-  public static void sendQueue(ObjectLinkedOpenHashSet<QueueElement> queue, ObjectLinkedOpenHashSet<QueueElement> spentQueue, ServerLevel level)
+  public static void sendQueue(ObjectLinkedOpenHashSet<QueueElement> queue, ArrayList<QueueElement> spentQueue, ServerLevel level)
   {
     if(CarpetSettings.superSecretSetting || queue.isEmpty())
       return;
